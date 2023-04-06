@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 
-import admin from '../services/firebase.service'
+import {admin, db} from '../services/firebase.service'
 
 const create = async (req: Request, res: Response): Promise<void> => {
   console.log(req.body)

@@ -6,6 +6,6 @@ admin.initializeApp({
     credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
     databaseURL: "https://datingapp-56f26-default-rtdb.asia-southeast1.firebasedatabase.app"
   });
+const db = admin.database()
 
-
-export default admin
+export {admin, db} 
