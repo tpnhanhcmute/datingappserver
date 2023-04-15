@@ -5,6 +5,8 @@ const app = express();
 app.use(express.json());
 
 const port = 3000
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
 userRoutes(app)
 app.get('/', (req, res) => {
