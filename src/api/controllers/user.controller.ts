@@ -29,50 +29,48 @@ const register = async (req:Request, res:Response):Promise<void> =>{
 
   const userRef = database.collection('user')
   try{
+    let querySnapshot = await userRef.where('email','==',email).limit(1)
+    let docs = await querySnapshot.get()
+    let otp = randomNumber(4)
+    let id = ""
+    if(docs.size!=0)
+    {
+      let userInfo: user
+      docs.forEach((doc)=>{
+        userInfo = doc.data() as user
+        id = doc.id
+      });
 
-    //Check user
-     let querySnapshot = await userRef.where("email","==", email)
-     if((await querySnapshot.get()).size !=0){
-      querySnapshot = querySnapshot.where("isAuth","==", false)
-      if((await querySnapshot.get()).size != 0)
-      {
-        res.status(200).send({
-          isError:true,
-          message:"Tài khoản đã tồn tại",
-        })
-        return
-      }else{
-
-        console.log(querySnapshot)
-        let id ="";
-        (await querySnapshot.get()).forEach((doc)=>{
-          
-          return
-        })
-        let otp = randomNumber(4)
+      if(userInfo.isAuth== null || !userInfo.isAuth){
+        //Send OTP
         res.status(200).send({
           isError:false,
-          message:"send OTP thành công",
+          message: "send otp successed",
+          data:{
+            id: id,
+            otp:otp
+          }
+        })
+      }else{
+        //Notify exited account
+        res.status(200).send({
+          isError:"true",
+          message:"acount has existed"
+        })
+      }
+      return
+    }
+
+    const rss = await userRef.add(plainUser)
+    res.status(200).send({
+          isError:false,
+          message:"send OTP successed",
           data:{
             id:id,
             otp: otp
           }
         })
-        return
-      }
-     }
 
-      const rss = await userRef.add(plainUser)
-      console.log(rss.id)
-      let otp = randomNumber(4)
-      res.status(200).send({
-        isError:false,
-        message:"send OTP thành công",
-        data:{
-          id:rss.id,
-          otp: otp
-        }
-      })
   }catch(error){
     console.log(error)
       res.status(400).send({
