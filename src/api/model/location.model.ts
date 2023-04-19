@@ -3,6 +3,5 @@ export class location{
     lat: Number
     lng: Number
     constructor(){
-        
     }
 }

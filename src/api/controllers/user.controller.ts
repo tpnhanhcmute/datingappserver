@@ -1,5 +1,5 @@
 import { Request, Response, query } from "express";
-import { admin, database, realtimedb } from "../services/firebase.service";
+import { admin, database, realtimedb, sendEmail } from "../services/firebase.service";
 import { user } from "../model/user.model";
 import { hashMessage, randomNumber, getDistance } from "../../utils/utils";
 import {
@@ -14,6 +14,7 @@ import { discorverUser } from "../dto/discoverUser.dto";
 import { locationid } from "../dto/locationid.dto";
 import { imageid } from "../dto/imageid.model";
 import { image } from "../model/image.model";
+import { userid } from "../dto/userid.dto";
 
 const create = async (req: Request, res: Response): Promise<void> => {
   const {
@@ -112,6 +113,7 @@ const register = async (req: Request, res: Response): Promise<void> => {
 
       if (userInfo.isAuth == null || !userInfo.isAuth) {
         //Send OTP
+        await sendEmail(email,"Mã otp của bạn",otp.toString())
         res.status(200).send({
           isError: false,
           message: "send otp successed",
@@ -129,7 +131,8 @@ const register = async (req: Request, res: Response): Promise<void> => {
       }
       return;
     }
-
+    
+    await sendEmail(email,"Mã otp của bạn",otp.toString())
     const rss = await userRef.add(plainUser);
     res.status(200).send({
       isError: false,
@@ -171,7 +174,7 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
   const userDoc = await userRef.get();
   if (userDoc.exists) {
     const userData = userDoc.data() as user;
-    locationID = userData.locationID;
+    locationID = userRef.id;
   }
 
   const locationRef = await database
@@ -193,11 +196,16 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
         database.collection("image").get(),
       ]);
 
-    let userDocs: Array<user> = userCollection.docs
-      .map((doc) => doc.data() as user)
-      .filter((user) => {
-        user.age >= minAge, user.age <= maxAge, getGender.includes(user.gender);
-      });
+    let userDocs: Array<userid> = userCollection.docs
+      .map((doc) => {
+        let u = new userid()
+        u.id = doc.id
+        u.user =  doc.data() as user
+        return new userid()
+      })
+      .filter((data) => {
+        data.user.age >= minAge, data.user.age <= maxAge, getGender.includes(data.user.gender)
+      })
 
     let locationDoc: Array<locationid> = locationCollection.docs.map((doc) => {
       const lcationid = new locationid();
@@ -215,10 +223,10 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
     });
 
     let userDistance: Array<discorverUser> = userDocs.map((userDoc) => {
-      const locationId = userDoc.locationID;
+      const locationId = userDoc.id;
       let distance = Number.MAX_VALUE;
       const arrayLocation = locationDoc.filter(
-        (location) => location.id == userDoc.locationID
+        (location) => location.id == userDoc.id
       );
       if (arrayLocation.length > 0) {
         let point2 = new point();
@@ -227,9 +235,9 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
         distance = getDistance(p, point2) as number;
       }
       let dcUser = new discorverUser();
-      dcUser.age = userDoc.age;
-      dcUser.fullName = userDoc.fullName;
-      (dcUser.hobby = userDoc.hobby), (dcUser.occupation = userDoc.occupation);
+      dcUser.age = userDoc.user.age;
+      dcUser.fullName = userDoc.user.fullName;
+      (dcUser.hobby = userDoc.user.hobby), (dcUser.occupation = userDoc.user.occupation);
       dcUser.distance = distance.toString();
       dcUser.imageUrl = imageDoc
         .filter((x) => {
@@ -241,14 +249,14 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
 
     res.status(200).send({
       isError: false,
-      message: "Danh sách user",
+      message: "List user",
       data: {
         discorverUser: userDistance.filter((x) => x.distance < distance),
       },
     });
   } catch (error) {
     res.status(400).send({
-      isError: false,
+      isError: true,
       message: error,
     });
   }
