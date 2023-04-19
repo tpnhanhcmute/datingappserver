@@ -1,5 +1,5 @@
 import { Request, Response, query } from "express";
-import { admin, database, realtimedb, sendEmail } from "../services/firebase.service";
+import { admin, database, realtimedb } from "../services/firebase.service";
 import { user } from "../model/user.model";
 import { hashMessage, randomNumber, getDistance } from "../../utils/utils";
 import {
@@ -14,7 +14,6 @@ import { discorverUser } from "../dto/discoverUser.dto";
 import { locationid } from "../dto/locationid.dto";
 import { imageid } from "../dto/imageid.model";
 import { image } from "../model/image.model";
-import { userid } from "../dto/userid.dto";
 
 const create = async (req: Request, res: Response): Promise<void> => {
   const {
@@ -28,6 +27,7 @@ const create = async (req: Request, res: Response): Promise<void> => {
     occupation,
     career,
   } = req.body;
+
 
   const userRef = database.collection("user");
   userRef
@@ -45,6 +45,7 @@ const create = async (req: Request, res: Response): Promise<void> => {
     .then((userRef) => {
       res.status(200).json({ userRef });
     })
+
 
     .catch((error) => {
       res.status(400).json({ error });
@@ -113,7 +114,6 @@ const register = async (req: Request, res: Response): Promise<void> => {
 
       if (userInfo.isAuth == null || !userInfo.isAuth) {
         //Send OTP
-        await sendEmail(email,"Mã otp của bạn",otp.toString())
         res.status(200).send({
           isError: false,
           message: "send otp successed",
@@ -131,8 +131,9 @@ const register = async (req: Request, res: Response): Promise<void> => {
       }
       return;
     }
-    
-    await sendEmail(email,"Mã otp của bạn",otp.toString())
+   
+
+
     const rss = await userRef.add(plainUser);
     res.status(200).send({
       isError: false,
@@ -174,7 +175,7 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
   const userDoc = await userRef.get();
   if (userDoc.exists) {
     const userData = userDoc.data() as user;
-    locationID = userRef.id;
+    locationID = userData.locationID;
   }
 
   const locationRef = await database
@@ -196,16 +197,11 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
         database.collection("image").get(),
       ]);
 
-    let userDocs: Array<userid> = userCollection.docs
-      .map((doc) => {
-        let u = new userid()
-        u.id = doc.id
-        u.user =  doc.data() as user
-        return new userid()
-      })
-      .filter((data) => {
-        data.user.age >= minAge, data.user.age <= maxAge, getGender.includes(data.user.gender)
-      })
+    let userDocs: Array<user> = userCollection.docs
+      .map((doc) => doc.data() as user)
+      .filter((user) => {
+        user.age >= minAge, user.age <= maxAge, getGender.includes(user.gender);
+      });
 
     let locationDoc: Array<locationid> = locationCollection.docs.map((doc) => {
       const lcationid = new locationid();
@@ -223,10 +219,10 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
     });
 
     let userDistance: Array<discorverUser> = userDocs.map((userDoc) => {
-      const locationId = userDoc.id;
+      const locationId = userDoc.locationID;
       let distance = Number.MAX_VALUE;
       const arrayLocation = locationDoc.filter(
-        (location) => location.id == userDoc.id
+        (location) => location.id == userDoc.locationID
       );
       if (arrayLocation.length > 0) {
         let point2 = new point();
@@ -235,9 +231,9 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
         distance = getDistance(p, point2) as number;
       }
       let dcUser = new discorverUser();
-      dcUser.age = userDoc.user.age;
-      dcUser.fullName = userDoc.user.fullName;
-      (dcUser.hobby = userDoc.user.hobby), (dcUser.occupation = userDoc.user.occupation);
+      dcUser.age = userDoc.age;
+      dcUser.fullName = userDoc.fullName;
+      (dcUser.hobby = userDoc.hobby), (dcUser.occupation = userDoc.occupation);
       dcUser.distance = distance.toString();
       dcUser.imageUrl = imageDoc
         .filter((x) => {
@@ -249,22 +245,65 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
 
     res.status(200).send({
       isError: false,
-      message: "List user",
+      message: "Danh sách user",
       data: {
         discorverUser: userDistance.filter((x) => x.distance < distance),
       },
     });
   } catch (error) {
     res.status(400).send({
-      isError: true,
+      isError: false,
       message: error,
     });
   }
 };
+
+const login = async(req: Request, res: Response): Promise<void> =>{
+  const {email,password} = req.body;
+  const userRef = database.collection("user");
+  const newUser = new user();
+
+  try
+  {
+  const snapshots = await userRef.where("email","==",email).where('password', '==', password).get();
+
+  if (snapshots.empty) {
+    res.status(404).send('User not found');
+    } else {
+      // console.log(x.docs[0].data().career)
+      const userdoc = snapshots.docs[0].data();
+      newUser.career = userdoc.career;
+      newUser.age = userdoc.age;
+      newUser.occupation = userdoc.occupation;
+      newUser.fullName = userdoc.fullName;
+      newUser.dateOfBirth = userdoc.dateOfBirth;
+      newUser.hobby = userdoc.hobby;
+      
+      res.status(200).send({
+        "isError":false,
+        "message":"success",
+        data: {
+          user: newUser
+        }
+      });
+    }
+  } catch (error) {
+    res.status(500).send('Error getting user');
+  }
+}
+  
+
+
+
+
+
+
+
 export default {
   create,
   update,
   register,
   getDiscorverUser,
   match,
+  login,
 };
