@@ -1,10 +1,17 @@
 export class discorverUser{
-    fullName:String
+    fullName:String 
     hobby:Array<String>
     age:Number
-    distance:String
+    distance:Number
     occupation:String
     imageUrl:Array<String>
+
     constructor(){
+        this.fullName = new String()
+        this.hobby = new Array<String>()
+        this.age = new Number()
+        this.distance = new Number()
+        this.occupation = new String()
+        this.imageUrl= new Array<String>()
     }
 }

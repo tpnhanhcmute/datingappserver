@@ -19,6 +19,6 @@ const getDistance = function distance(point1: point, point2: point): Number {
     return geolib.getDistance(
       { latitude: point1.latitude as number, longitude: point1.longitude as number },
       { latitude: point2.latitude as number, longitude: point2.longitude as number }
-    );
+    )/1000;
 }
 export {hashMessage, randomNumber,getDistance}

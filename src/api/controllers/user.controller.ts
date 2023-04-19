@@ -8,6 +8,7 @@ import {
   where,
   getDocs,
 } from "firebase/firestore";
+import {interaction} from "../model/like.model"
 import { location } from "../model/location.model";
 import { point } from "../model/point.model";
 import { discorverUser } from "../dto/discoverUser.dto";
@@ -113,7 +114,7 @@ const register = async (req: Request, res: Response): Promise<void> => {
 
       if (userInfo.isAuth == null || !userInfo.isAuth) {
         //Send OTP
-        await sendEmail(email,"Mã otp của bạn",otp.toString())
+        await sendEmail(email,"Datting appp: Your OTP",otp.toString())
         res.status(200).send({
           isError: false,
           message: "send otp successed",
@@ -131,8 +132,8 @@ const register = async (req: Request, res: Response): Promise<void> => {
       }
       return;
     }
-    
-    await sendEmail(email,"Mã otp của bạn",otp.toString())
+
+    await sendEmail(email,"Datting appp: Your OTP",otp.toString())
     const rss = await userRef.add(plainUser);
     res.status(200).send({
       isError: false,
@@ -154,13 +155,13 @@ const register = async (req: Request, res: Response): Promise<void> => {
 const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
   const MALE = "Male";
   const FEMALE = "Female";
-  const BOTH = "both";
+  const BOTH = "Both";
 
   let { minAge, maxAge, distance, gender, userID } = req.body;
   console.log(userID);
-  if (minAge == null) minAge = 0;
-  if (maxAge == null) maxAge == 100;
-  if (distance == null) distance = Math.max;
+  if (minAge == null) minAge = 0
+  if (maxAge == null) maxAge = Number.MAX_VALUE
+  if (distance == null) distance = Number.MAX_VALUE
   if (gender == null) gender = BOTH;
   const getGender = [];
   if (gender == BOTH) {
@@ -189,23 +190,22 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const [userCollection, locationCollection, imageCollection] =
+    const [userCollection, locationCollection, imageCollection, likeCollection] =
       await Promise.all([
-        database.collection("user").get(),
+        database.collection("user").where("isAuth","==",true).get(),
         database.collection("location").get(),
         database.collection("image").get(),
+        database.collection("like").where("userIDLike","==", userID).where("isLike","==", true).get()
       ]);
 
+    let likeDocs = likeCollection.docs.map(like=>(like.data() as interaction).userIDLiked)
     let userDocs: Array<userid> = userCollection.docs
       .map((doc) => {
         let u = new userid()
         u.id = doc.id
         u.user =  doc.data() as user
-        return new userid()
-      })
-      .filter((data) => {
-        data.user.age >= minAge, data.user.age <= maxAge, getGender.includes(data.user.gender)
-      })
+        return u
+      }).filter(user=>user.user.age >= (minAge as Number) && user.user.age <=(maxAge as Number) && getGender.includes(user.user.gender) && !likeDocs.includes(user.id))
 
     let locationDoc: Array<locationid> = locationCollection.docs.map((doc) => {
       const lcationid = new locationid();
@@ -238,7 +238,7 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
       dcUser.age = userDoc.user.age;
       dcUser.fullName = userDoc.user.fullName;
       (dcUser.hobby = userDoc.user.hobby), (dcUser.occupation = userDoc.user.occupation);
-      dcUser.distance = distance.toString();
+      dcUser.distance = distance
       dcUser.imageUrl = imageDoc
         .filter((x) => {
           x.image.userID == userRef.id;
