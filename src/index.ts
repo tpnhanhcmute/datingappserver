@@ -1,19 +1,20 @@
-import express from 'express';
-import userRoutes from './api/routes/user.routes';
-import {sendEmail} from "./api/services/firebase.service"
-const app = express();
+import express from "express";
+import { sendEmail } from "./api/services/firebase.service";
+import userRouter from "./router/user.router";
 
+const app = express();
 app.use(express.json());
 
-const port = 3000
+const port = 3000;
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-userRoutes(app)
-app.get('/', (req, res) => {
-  res.send('Hello World!');
+app.use("/users", userRouter);
+
+app.get("/", (req, res) => {
+  res.send("Hello Huy dep zai!");
 });
+
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);
 });
-
