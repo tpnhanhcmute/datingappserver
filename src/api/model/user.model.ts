@@ -11,5 +11,5 @@ export class user {
     isAuth:Boolean
     isFirstLogin:Boolean
     occupation:String|null
-    locationID: String|null
+    locationID: string|null
   }

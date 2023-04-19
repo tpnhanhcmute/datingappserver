@@ -8,12 +8,12 @@ import { getFirestore } from 'firebase-admin/firestore';
 const gmail = "tpnhan12a1@gmail.com"
 const password = "xdvdvvboulygwevi"
 
-admin.initializeApp({
+const app = admin.initializeApp({
     credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
     databaseURL: "https://datingapp-56f26-default-rtdb.asia-southeast1.firebasedatabase.app"
   });
 const realtimedb = admin.database()
-const database = getFirestore()
+const database = getFirestore(app)
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',

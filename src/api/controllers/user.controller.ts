@@ -1,9 +1,14 @@
-import { Request, Response } from 'express';
-
+import { Request, Response, query } from 'express';
 import {admin, database , realtimedb} from '../services/firebase.service'
 import {user } from '../model/user.model';
-import { hashMessage, randomNumber } from '../../utils/utils';
-
+import { hashMessage, randomNumber, getDistance } from '../../utils/utils';
+import {collection, query as firestoreQuery, where, getDocs} from 'firebase/firestore';
+import { location } from '../model/location.model';
+import { point } from '../model/point.model';
+import { discorverUser } from '../dto/discoverUser.dto';
+import { locationid } from '../dto/locationid.dto';
+import { imageid } from '../dto/imageid.model';
+import { image } from '../model/image.model';
 
 const create = async (req: Request, res: Response): Promise<void> => {
   console.log(req.body)
@@ -80,6 +85,105 @@ const register = async (req:Request, res:Response):Promise<void> =>{
   }
 }
 
+
+const getDiscorverUser = async (req:Request, res:Response):Promise<void> =>{
+      const MALE = "Male"
+      const FEMALE= "Female"
+      const BOTH = "both"
+
+      let {minAge,maxAge,distance,gender, userID}= req.body
+      console.log(userID)
+      if (minAge == null) minAge = 0
+      if(maxAge ==null) maxAge == 100
+      if(distance ==null) distance = Math.max
+      if(gender == null) gender = BOTH
+      const getGender = []
+      if(gender == BOTH){
+        getGender.push(MALE)
+        getGender.push(FEMALE)
+      }else{
+        getGender.push(gender)
+      }
+      const userRef = await database.collection('user').doc(userID)
+      let locationID:String
+      const userDoc = await userRef.get();
+      if(userDoc.exists){
+        const userData = userDoc.data() as user
+        locationID = userData.locationID
+      }
+
+      const locationRef = await database.collection('location').doc(locationID.toString())
+      const locationDoc = await locationRef.get()
+      let p = new point()
+      if(locationDoc.exists){
+        const location = locationDoc.data() as location
+        p.latitude = location.lat
+        p.longitude= location.lng
+      }
+
+    try{
+    const [userCollection,locationCollection, imageCollection] = await
+        Promise.all([database.collection('user').get(),
+                      database.collection('location').get(),
+                      database.collection('image').get()])
+
+      let userDocs:Array<user> = userCollection.docs.map((doc)=>
+      doc.data() as user).filter(user=>{
+        user.age>= minAge,
+        user.age <=maxAge,
+        getGender.includes(user.gender)
+      })
+
+      let locationDoc:Array<locationid> = locationCollection.docs.map(doc=>{
+        const lcationid = new locationid()
+        lcationid.id= doc.id;
+        lcationid.location = doc.data() as location
+        return lcationid
+      })
+
+      let imageDoc:Array<imageid>= imageCollection.docs.map(doc=>{
+        const imgeid= new imageid()
+        imgeid.id = doc.id
+        imgeid.image = doc.data() as image
+
+        return imgeid
+      })
+
+      let userDistance : Array<discorverUser> = userDocs.map(userDoc=>{
+        const locationId = userDoc.locationID;
+        let distance = Number.MAX_VALUE
+        const arrayLocation = locationDoc.filter(location=>location.id ==userDoc.locationID)
+        if(arrayLocation.length>0){
+          let point2 = new point()
+          point2.latitude = arrayLocation[0].location.lat
+          point2.longitude = arrayLocation[0].location.lng
+          distance = getDistance(p, point2) as number
+        }
+        let dcUser = new discorverUser()
+        dcUser.age= userDoc.age
+        dcUser.fullName = userDoc.fullName
+        dcUser.hobby = userDoc.hobby,
+        dcUser.occupation = userDoc.occupation
+        dcUser.distance = distance.toString()
+        dcUser.imageUrl = imageDoc.filter( x=>{ x.image.userID == userRef.id}).map(x=>x.image.url)
+        return dcUser
+      })
+
+      res.status(200).send({
+        isError:false,
+        message:"Danh sách user",
+        data:{
+          discorverUser:userDistance.filter(x=>x.distance < distance)
+        }
+      })
+
+    }catch(error){
+      res.status(400).send({
+        isError:false,
+        message:error
+      })
+    }
+}
 export default {
-  create,register
+  create,register,getDiscorverUser
 };

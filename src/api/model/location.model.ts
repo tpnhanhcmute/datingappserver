@@ -1,5 +1,8 @@
-export interface location{
-    name:String,
-    lat: Number,
+export class location{
+    name:String
+    lat: Number
     lng: Number
+    constructor(){
+        
+    }
 }
