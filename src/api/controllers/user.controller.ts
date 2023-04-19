@@ -1,5 +1,5 @@
 import { Request, Response, query } from "express";
-import { admin, database, realtimedb, sendEmail } from "../services/firebase.service";
+import { admin, database, realtimedb, sendEmail} from "../services/firebase.service";
 import { user } from "../model/user.model";
 import { hashMessage, randomNumber, getDistance } from "../../utils/utils";
 import {
@@ -30,6 +30,7 @@ const create = async (req: Request, res: Response): Promise<void> => {
     career,
   } = req.body;
 
+
   const userRef = database.collection("user");
   userRef
     .add({
@@ -46,6 +47,7 @@ const create = async (req: Request, res: Response): Promise<void> => {
     .then((userRef) => {
       res.status(200).json({ userRef });
     })
+
 
     .catch((error) => {
       res.status(400).json({ error });
@@ -132,7 +134,6 @@ const register = async (req: Request, res: Response): Promise<void> => {
       }
       return;
     }
-
     await sendEmail(email,"Datting appp: Your OTP",otp.toString())
     const rss = await userRef.add(plainUser);
     res.status(200).send({
@@ -206,7 +207,6 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
         u.user =  doc.data() as user
         return u
       }).filter(user=>user.user.age >= (minAge as Number) && user.user.age <=(maxAge as Number) && getGender.includes(user.user.gender) && !likeDocs.includes(user.id))
-
     let locationDoc: Array<locationid> = locationCollection.docs.map((doc) => {
       const lcationid = new locationid();
       lcationid.id = doc.id;
@@ -249,22 +249,65 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
 
     res.status(200).send({
       isError: false,
-      message: "List user",
+      message: "Danh sách user",
       data: {
         discorverUser: userDistance.filter((x) => x.distance < distance),
       },
     });
   } catch (error) {
     res.status(400).send({
-      isError: true,
+      isError: false,
       message: error,
     });
   }
 };
+
+const login = async(req: Request, res: Response): Promise<void> =>{
+  const {email,password} = req.body;
+  const userRef = database.collection("user");
+  const newUser = new user();
+
+  try
+  {
+  const snapshots = await userRef.where("email","==",email).where('password', '==', password).get();
+
+  if (snapshots.empty) {
+    res.status(404).send('User not found');
+    } else {
+      // console.log(x.docs[0].data().career)
+      const userdoc = snapshots.docs[0].data();
+      newUser.career = userdoc.career;
+      newUser.age = userdoc.age;
+      newUser.occupation = userdoc.occupation;
+      newUser.fullName = userdoc.fullName;
+      newUser.dateOfBirth = userdoc.dateOfBirth;
+      newUser.hobby = userdoc.hobby;
+      
+      res.status(200).send({
+        "isError":false,
+        "message":"success",
+        data: {
+          user: newUser
+        }
+      });
+    }
+  } catch (error) {
+    res.status(500).send('Error getting user');
+  }
+}
+  
+
+
+
+
+
+
+
 export default {
   create,
   update,
   register,
   getDiscorverUser,
   match,
+  login,
 };
