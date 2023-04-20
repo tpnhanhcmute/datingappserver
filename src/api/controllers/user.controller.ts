@@ -26,7 +26,7 @@ import { log } from "console";
 const create = async (req: Request, res: Response): Promise<void> => {
   const {
     fullName,
-    hobby,
+    listHobby,
     dateOfBirth,
     gender,
     email,
@@ -40,7 +40,7 @@ const create = async (req: Request, res: Response): Promise<void> => {
   userRef
     .add({
       fullName,
-      hobby,
+      listHobby,
       dateOfBirth,
       gender,
       email,
@@ -121,6 +121,24 @@ const updateMessageID = async (
   await Promise.all([...updates1, ...updates2]);
 };
 
+const getFullName = async (ID) => {
+  try {
+    const userRef = database.collection("user").doc(ID);
+    const userDoc = await userRef.get();
+    if (userDoc.exists) {
+      const userData = userDoc.data();
+      const fullName = userData.fullName;
+      // console.log(fullName);
+      return fullName;
+    } else {
+      throw new Error(`User document with ID ${ID} not found`);
+    }
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+};
+
 const like = async (req: Request, res: Response): Promise<void> => {
   const { userID, isLike, otherUserID } = req.body;
   const like = database.collection("like");
@@ -148,12 +166,12 @@ const like = async (req: Request, res: Response): Promise<void> => {
 
       const sender1Content = {
         senderID: userID,
-        content: "Chào bro",
+        content: "create content success",
         date,
       };
       const sender2Content = {
         senderID: otherUserID,
-        content: "Nghe nè cu!",
+        content: "create content success",
         date,
       };
       newMessageRef.set({
@@ -162,7 +180,15 @@ const like = async (req: Request, res: Response): Promise<void> => {
 
       await Promise.all([updateMessageID(userID, otherUserID, newMessageId)]);
 
-      res.status(200).json({ message: "Bạn đã tương thích!" });
+      res.status(200).json({
+        message: "It's a match!",
+        data: {
+          otherUserID,
+          imageUrl: "chua lam",
+          messageID: newMessageId,
+          fullName: await getFullName(otherUserID),
+        },
+      });
     } else {
       res.status(200).json({ message: "Like Success" });
     }
