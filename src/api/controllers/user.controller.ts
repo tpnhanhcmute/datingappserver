@@ -1,5 +1,10 @@
 import { Request, Response, query } from "express";
-import { admin, database, realtimedb, sendEmail} from "../services/firebase.service";
+import {
+  admin,
+  database,
+  realtimedb,
+  sendEmail,
+} from "../services/firebase.service";
 import { user } from "../model/user.model";
 import { hashMessage, randomNumber, getDistance } from "../../utils/utils";
 import {
@@ -8,7 +13,7 @@ import {
   where,
   getDocs,
 } from "firebase/firestore";
-import {interaction} from "../model/like.model"
+import { interaction } from "../model/like.model";
 import { location } from "../model/location.model";
 import { point } from "../model/point.model";
 import { discorverUser } from "../dto/discoverUser.dto";
@@ -16,6 +21,7 @@ import { locationid } from "../dto/locationid.dto";
 import { imageid } from "../dto/imageid.model";
 import { image } from "../model/image.model";
 import { userid } from "../dto/userid.dto";
+import { log } from "console";
 
 const create = async (req: Request, res: Response): Promise<void> => {
   const {
@@ -29,7 +35,6 @@ const create = async (req: Request, res: Response): Promise<void> => {
     occupation,
     career,
   } = req.body;
-
 
   const userRef = database.collection("user");
   userRef
@@ -48,17 +53,16 @@ const create = async (req: Request, res: Response): Promise<void> => {
       res.status(200).json({ userRef });
     })
 
-
     .catch((error) => {
       res.status(400).json({ error });
     });
 };
 
-const update = async (req: Request, res: Response): Promise<void> => {
+const editProfile = async (req: Request, res: Response): Promise<void> => {
   const {
     userID,
     fullName,
-    hobby,
+    listHobby,
     dateOfBirth,
     gender,
     email,
@@ -73,7 +77,7 @@ const update = async (req: Request, res: Response): Promise<void> => {
     .update({
       userID,
       fullName,
-      hobby,
+      listHobby,
       dateOfBirth,
       gender,
       email,
@@ -91,7 +95,111 @@ const update = async (req: Request, res: Response): Promise<void> => {
     });
 };
 
-const match = async (req: Request, res: Response): Promise<void> => {};
+const updateMessageID = async (
+  userID: string,
+  otherUserID: string,
+  messageId: string
+) => {
+  const like = database.collection("like");
+
+  const query1 = like
+    .where("userID", "==", userID)
+    .where("otherUserID", "==", otherUserID);
+  const query2 = like
+    .where("userID", "==", otherUserID)
+    .where("otherUserID", "==", userID);
+
+  const [docs1, docs2] = await Promise.all([query1.get(), query2.get()]);
+
+  const updates1 = docs1.docs.map((doc) =>
+    doc.ref.update({ messageID: messageId })
+  );
+  const updates2 = docs2.docs.map((doc) =>
+    doc.ref.update({ messageID: messageId })
+  );
+
+  await Promise.all([...updates1, ...updates2]);
+};
+
+const like = async (req: Request, res: Response): Promise<void> => {
+  const { userID, isLike, otherUserID } = req.body;
+  const like = database.collection("like");
+  const date = new Date().toLocaleString();
+
+  try {
+    await like.add({
+      userID,
+      isLike,
+      otherUserID,
+      messageID: "", // Tạo một field messageID trống
+    });
+
+    // Tạo query để kiểm tra tương thích
+    const matchQuery = await like
+      .where("userID", "==", otherUserID)
+      .where("otherUserID", "==", userID)
+      .where("isLike", "==", "true")
+      .get();
+
+    // Kiểm tra và trả về kết quả
+    if (matchQuery.size > 0) {
+      const newMessageRef = realtimedb.ref("message").push(); // Tạo một DocumentReference mới
+      const newMessageId = newMessageRef.key; // Lấy ID của document vừa tạo
+
+      const sender1Content = {
+        senderID: userID,
+        content: "Chào bro",
+        date,
+      };
+      const sender2Content = {
+        senderID: otherUserID,
+        content: "Nghe nè cu!",
+        date,
+      };
+      newMessageRef.set({
+        listContent: [sender1Content, sender2Content],
+      });
+
+      await Promise.all([updateMessageID(userID, otherUserID, newMessageId)]);
+
+      res.status(200).json({ message: "Bạn đã tương thích!" });
+    } else {
+      res.status(200).json({ message: "Like Success" });
+    }
+  } catch (error) {
+    res.status(400).json({ error });
+  }
+};
+
+const sendMessage = async (req: Request, res: Response): Promise<void> => {
+  const { userID, messageID, content } = req.body;
+  const date = new Date().toLocaleString();
+
+  const messageRef = realtimedb.ref(`message/${messageID}/listContent`);
+  const newMessageRef = messageRef.push();
+
+  try {
+    await newMessageRef.set({
+      content,
+      date,
+      senderID: userID,
+    });
+    res.status(200).json({
+      message: "Tin nhắn đã được gửi thành công",
+      data: {
+        messageData: {
+          messageID,
+          senderID: userID,
+          content,
+          date,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Lỗi khi gửi tin nhắn:", error);
+    res.status(500).send("Có lỗi xảy ra khi gửi tin nhắn");
+  }
+};
 
 const register = async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body;
@@ -116,7 +224,7 @@ const register = async (req: Request, res: Response): Promise<void> => {
 
       if (userInfo.isAuth == null || !userInfo.isAuth) {
         //Send OTP
-        await sendEmail(email,"Datting appp: Your OTP",otp.toString())
+        await sendEmail(email, "Datting appp: Your OTP", otp.toString());
         res.status(200).send({
           isError: false,
           message: "send otp successed",
@@ -134,7 +242,7 @@ const register = async (req: Request, res: Response): Promise<void> => {
       }
       return;
     }
-    await sendEmail(email,"Datting appp: Your OTP",otp.toString())
+    await sendEmail(email, "Datting appp: Your OTP", otp.toString());
     const rss = await userRef.add(plainUser);
     res.status(200).send({
       isError: false,
@@ -160,9 +268,9 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
 
   let { minAge, maxAge, distance, gender, userID } = req.body;
   console.log(userID);
-  if (minAge == null) minAge = 0
-  if (maxAge == null) maxAge = Number.MAX_VALUE
-  if (distance == null) distance = Number.MAX_VALUE
+  if (minAge == null) minAge = 0;
+  if (maxAge == null) maxAge = Number.MAX_VALUE;
+  if (distance == null) distance = Number.MAX_VALUE;
   if (gender == null) gender = BOTH;
   const getGender = [];
   if (gender == BOTH) {
@@ -191,22 +299,39 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const [userCollection, locationCollection, imageCollection, likeCollection] =
-      await Promise.all([
-        database.collection("user").where("isAuth","==",true).get(),
-        database.collection("location").get(),
-        database.collection("image").get(),
-        database.collection("like").where("userIDLike","==", userID).where("isLike","==", true).get()
-      ]);
+    const [
+      userCollection,
+      locationCollection,
+      imageCollection,
+      likeCollection,
+    ] = await Promise.all([
+      database.collection("user").where("isAuth", "==", true).get(),
+      database.collection("location").get(),
+      database.collection("image").get(),
+      database
+        .collection("like")
+        .where("userIDLike", "==", userID)
+        .where("isLike", "==", true)
+        .get(),
+    ]);
 
-    let likeDocs = likeCollection.docs.map(like=>(like.data() as interaction).userIDLiked)
+    let likeDocs = likeCollection.docs.map(
+      (like) => (like.data() as interaction).userIDLiked
+    );
     let userDocs: Array<userid> = userCollection.docs
       .map((doc) => {
-        let u = new userid()
-        u.id = doc.id
-        u.user =  doc.data() as user
-        return u
-      }).filter(user=>user.user.age >= (minAge as Number) && user.user.age <=(maxAge as Number) && getGender.includes(user.user.gender) && !likeDocs.includes(user.id))
+        let u = new userid();
+        u.id = doc.id;
+        u.user = doc.data() as user;
+        return u;
+      })
+      .filter(
+        (user) =>
+          user.user.age >= (minAge as Number) &&
+          user.user.age <= (maxAge as Number) &&
+          getGender.includes(user.user.gender) &&
+          !likeDocs.includes(user.id)
+      );
     let locationDoc: Array<locationid> = locationCollection.docs.map((doc) => {
       const lcationid = new locationid();
       lcationid.id = doc.id;
@@ -237,8 +362,9 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
       let dcUser = new discorverUser();
       dcUser.age = userDoc.user.age;
       dcUser.fullName = userDoc.user.fullName;
-      (dcUser.hobby = userDoc.user.hobby), (dcUser.occupation = userDoc.user.occupation);
-      dcUser.distance = distance
+      (dcUser.hobby = userDoc.user.hobby),
+        (dcUser.occupation = userDoc.user.occupation);
+      dcUser.distance = distance;
       dcUser.imageUrl = imageDoc
         .filter((x) => {
           x.image.userID == userRef.id;
@@ -262,17 +388,19 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-const login = async(req: Request, res: Response): Promise<void> =>{
-  const {email,password} = req.body;
+const login = async (req: Request, res: Response): Promise<void> => {
+  const { email, password } = req.body;
   const userRef = database.collection("user");
   const newUser = new user();
 
-  try
-  {
-  const snapshots = await userRef.where("email","==",email).where('password', '==', password).get();
+  try {
+    const snapshots = await userRef
+      .where("email", "==", email)
+      .where("password", "==", password)
+      .get();
 
-  if (snapshots.empty) {
-    res.status(404).send('User not found');
+    if (snapshots.empty) {
+      res.status(404).send("User not found");
     } else {
       // console.log(x.docs[0].data().career)
       const userdoc = snapshots.docs[0].data();
@@ -282,32 +410,26 @@ const login = async(req: Request, res: Response): Promise<void> =>{
       newUser.fullName = userdoc.fullName;
       newUser.dateOfBirth = userdoc.dateOfBirth;
       newUser.hobby = userdoc.hobby;
-      
+
       res.status(200).send({
-        "isError":false,
-        "message":"success",
+        isError: false,
+        message: "success",
         data: {
-          user: newUser
-        }
+          user: newUser,
+        },
       });
     }
   } catch (error) {
-    res.status(500).send('Error getting user');
+    res.status(500).send("Error getting user");
   }
-}
-  
-
-
-
-
-
-
+};
 
 export default {
   create,
-  update,
+  editProfile,
   register,
   getDiscorverUser,
-  match,
+  like,
   login,
+  sendMessage,
 };

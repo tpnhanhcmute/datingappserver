@@ -6,9 +6,11 @@ const router = express.Router();
 
 router.post("/create", userController.create);
 
-router.patch("/update", userController.update);
+router.patch("/edit", userController.editProfile);
 
-router.post("/users", userController.create);
+router.post("/like", userController.like);
+
+router.post("/chat", userController.sendMessage);
 
 router.post("/register", userController.register);
 
