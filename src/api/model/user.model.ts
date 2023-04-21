@@ -11,6 +11,7 @@ export class user {
     isAuth:Boolean 
     isFirstLogin:Boolean 
     occupation:String|null 
+    userID:String
     constructor(){
       this.phoneNumber = new String()
       this.email = new String()
@@ -24,5 +25,6 @@ export class user {
       this.isAuth = false
       this.isFirstLogin = false,
       this.occupation = new String()
+      this.userID = new String()
     }
   }
