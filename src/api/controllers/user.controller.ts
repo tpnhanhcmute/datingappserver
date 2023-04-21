@@ -13,7 +13,7 @@ import {
   where,
   getDocs,
 } from "firebase/firestore";
-import { interaction } from "../model/like.model";
+import {interaction} from "../model/like.model"
 import { location } from "../model/location.model";
 import { point } from "../model/point.model";
 import { discorverUser } from "../dto/discoverUser.dto";
@@ -21,12 +21,14 @@ import { locationid } from "../dto/locationid.dto";
 import { imageid } from "../dto/imageid.model";
 import { image } from "../model/image.model";
 import { userid } from "../dto/userid.dto";
-import { log } from "console";
+import { match } from "../dto/match.dto"
+import { interaction2 } from "../model/interaction.model";
+
 
 const create = async (req: Request, res: Response): Promise<void> => {
   const {
     fullName,
-    listHobby,
+    hobby,
     dateOfBirth,
     gender,
     email,
@@ -36,11 +38,12 @@ const create = async (req: Request, res: Response): Promise<void> => {
     career,
   } = req.body;
 
+
   const userRef = database.collection("user");
   userRef
     .add({
       fullName,
-      listHobby,
+      hobby,
       dateOfBirth,
       gender,
       email,
@@ -53,16 +56,17 @@ const create = async (req: Request, res: Response): Promise<void> => {
       res.status(200).json({ userRef });
     })
 
+
     .catch((error) => {
       res.status(400).json({ error });
     });
 };
 
-const editProfile = async (req: Request, res: Response): Promise<void> => {
+const update = async (req: Request, res: Response): Promise<void> => {
   const {
     userID,
     fullName,
-    listHobby,
+    hobby,
     dateOfBirth,
     gender,
     email,
@@ -77,7 +81,7 @@ const editProfile = async (req: Request, res: Response): Promise<void> => {
     .update({
       userID,
       fullName,
-      listHobby,
+      hobby,
       dateOfBirth,
       gender,
       email,
@@ -250,7 +254,7 @@ const register = async (req: Request, res: Response): Promise<void> => {
 
       if (userInfo.isAuth == null || !userInfo.isAuth) {
         //Send OTP
-        await sendEmail(email, "Datting appp: Your OTP", otp.toString());
+        await sendEmail(email,"Datting appp: Your OTP",otp.toString())
         res.status(200).send({
           isError: false,
           message: "send otp successed",
@@ -268,7 +272,7 @@ const register = async (req: Request, res: Response): Promise<void> => {
       }
       return;
     }
-    await sendEmail(email, "Datting appp: Your OTP", otp.toString());
+    await sendEmail(email,"Datting appp: Your OTP",otp.toString())
     const rss = await userRef.add(plainUser);
     res.status(200).send({
       isError: false,
@@ -294,9 +298,9 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
 
   let { minAge, maxAge, distance, gender, userID } = req.body;
   console.log(userID);
-  if (minAge == null) minAge = 0;
-  if (maxAge == null) maxAge = Number.MAX_VALUE;
-  if (distance == null) distance = Number.MAX_VALUE;
+  if (minAge == null) minAge = 0
+  if (maxAge == null) maxAge = Number.MAX_VALUE
+  if (distance == null) distance = Number.MAX_VALUE
   if (gender == null) gender = BOTH;
   const getGender = [];
   if (gender == BOTH) {
@@ -325,39 +329,22 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const [
-      userCollection,
-      locationCollection,
-      imageCollection,
-      likeCollection,
-    ] = await Promise.all([
-      database.collection("user").where("isAuth", "==", true).get(),
-      database.collection("location").get(),
-      database.collection("image").get(),
-      database
-        .collection("like")
-        .where("userIDLike", "==", userID)
-        .where("isLike", "==", true)
-        .get(),
-    ]);
+    const [userCollection, locationCollection, imageCollection, likeCollection] =
+      await Promise.all([
+        database.collection("user").where("isAuth","==",true).get(),
+        database.collection("location").get(),
+        database.collection("image").get(),
+        database.collection("like").where("userIDLike","==", userID).where("isLike","==", true).get()
+      ]);
 
-    let likeDocs = likeCollection.docs.map(
-      (like) => (like.data() as interaction).userIDLiked
-    );
+    let likeDocs = likeCollection.docs.map(like=>(like.data() as interaction).userIDLiked)
     let userDocs: Array<userid> = userCollection.docs
       .map((doc) => {
-        let u = new userid();
-        u.id = doc.id;
-        u.user = doc.data() as user;
-        return u;
-      })
-      .filter(
-        (user) =>
-          user.user.age >= (minAge as Number) &&
-          user.user.age <= (maxAge as Number) &&
-          getGender.includes(user.user.gender) &&
-          !likeDocs.includes(user.id)
-      );
+        let u = new userid()
+        u.id = doc.id
+        u.user =  doc.data() as user
+        return u
+      }).filter(user=>user.user.age >= (minAge as Number) && user.user.age <=(maxAge as Number) && getGender.includes(user.user.gender) && !likeDocs.includes(user.id))
     let locationDoc: Array<locationid> = locationCollection.docs.map((doc) => {
       const lcationid = new locationid();
       lcationid.id = doc.id;
@@ -388,9 +375,8 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
       let dcUser = new discorverUser();
       dcUser.age = userDoc.user.age;
       dcUser.fullName = userDoc.user.fullName;
-      (dcUser.hobby = userDoc.user.hobby),
-        (dcUser.occupation = userDoc.user.occupation);
-      dcUser.distance = distance;
+      (dcUser.hobby = userDoc.user.hobby), (dcUser.occupation = userDoc.user.occupation);
+      dcUser.distance = distance
       dcUser.imageUrl = imageDoc
         .filter((x) => {
           x.image.userID == userRef.id;
@@ -414,48 +400,177 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-const login = async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body;
+const login = async(req: Request, res: Response): Promise<void> =>{
+  const {email,password} = req.body;
   const userRef = database.collection("user");
   const newUser = new user();
 
-  try {
-    const snapshots = await userRef
-      .where("email", "==", email)
-      .where("password", "==", password)
-      .get();
+  try
+  {
+  const snapshots = await userRef.where("email","==",email).get();
 
-    if (snapshots.empty) {
-      res.status(404).send("User not found");
-    } else {
+  if (snapshots.empty) {
+    res.status(404).send('user is not exist !!');
+    } 
+    else {
+      const snapshot = await userRef.where("email","==",email).where("password","==",password).get();  
+      if(snapshot.empty){
+        res.status(404).send('password is not correct')
+      }else{
       // console.log(x.docs[0].data().career)
-      const userdoc = snapshots.docs[0].data();
+      const userdoc = snapshot.docs[0].data();
       newUser.career = userdoc.career;
       newUser.age = userdoc.age;
       newUser.occupation = userdoc.occupation;
       newUser.fullName = userdoc.fullName;
       newUser.dateOfBirth = userdoc.dateOfBirth;
       newUser.hobby = userdoc.hobby;
-
+      
       res.status(200).send({
-        isError: false,
-        message: "success",
+        "isError":false,
+        "message":"success",
         data: {
-          user: newUser,
-        },
+          user: newUser
+        }
       });
     }
-  } catch (error) {
-    res.status(500).send("Error getting user");
   }
-};
+  } catch (error) {
+    res.status(500).send('Error getting user');
+  }
+}
+  
+const getmatch = async(req: Request, res: Response): Promise<void> =>{
+  const {userID} = req.body;
+  const userR = await database.collection("user").doc(userID);
+  // console.log(userID)
+  // const likeRef = await database.collection("like2");
+  // const userRef = database.collection("user");
+  try
+  {
+    const likeRef = await database.collection("like2").where("message_id","!=",null).where("user_id_like","==",userID).get();
+    // console.log(likeSnap.docs[0].data())
+    if(likeRef.empty){
+      res.status(404).send("none match !!")
+    }
+    else{
+      const [useref, imageRef] = await 
+      Promise.all([
+        database.collection("user").get(),
+        database.collection("image").get(),
+      ]);
+      const likelocal = likeRef.docs.map(doc=>(doc.data() as interaction2))
+      const userlocal : Array<userid> = useref.docs.map((doc)=>{
+        const u = new userid();
+        u.id = doc.id;
+        u.user = doc.data() as user;
+        return u
+      }).filter((doc)=>(likelocal.map(x=>x.user_id_liked).includes(doc.id)))
+      console.log(userlocal)
+      //.filter((x)=>{
+      //   x.id = 
+      // })
+      // console.log(userlocal)
+
+      const imagelocal : Array<imageid> = imageRef.docs.map((doc)=>{
+        const i = new imageid()
+        i.id = doc.id;
+        i.image = doc.data() as image;
+        return i;
+      })
+      //console.log(imagelocal)
+      const matchlist: Array<match> = userlocal.map((doc)=>{
+        const m = new match();
+        m.user = doc.user
+        const temp1 = imagelocal.filter((x)=>{ return x.image.userID == doc.user.userID})
+        const temp = temp1.map((x)=>(x.image.url))
+        m.urlimage = temp[0]
+        return m;
+      })
+      
+      res.status(200).send({
+        "isError":false,
+        "message":"success",
+        data:{
+          matchlist: matchlist
+        }
+      });
+
+    }
+  } catch (error) {
+    res.status(500).send('Error getting matclist');
+  }
+}
+
+const getConver = async(req: Request, res: Response): Promise<void> =>{
+  const {userID} = req.body;
+  const userR = await database.collection("user").doc(userID);
+  // console.log(userID)
+  // const likeRef = await database.collection("like2");
+  // const userRef = database.collection("user");
+  try
+  {
+    const likeRef = await database.collection("like2").where("message_id","!=",null).where("user_id_like","==",userID).get();
+    // console.log(likeSnap.docs[0].data())
+    if(likeRef.empty){
+      res.status(404).send("none match !!")
+    }
+    else{
+      const [useref, imageRef] = await 
+      Promise.all([
+        database.collection("user").get(),
+        database.collection("image").get(),
+      ]);
+      const likelocal = likeRef.docs.map(doc=>(doc.data() as interaction2))
+      const userlocal : Array<userid> = useref.docs.map((doc)=>{
+        const u = new userid();
+        u.id = doc.id;
+        u.user = doc.data() as user;
+        return u
+      }).filter((doc)=>(likelocal.map(x=>x.user_id_liked).includes(doc.id)))
+      console.log(userlocal)
+      //.filter((x)=>{
+      //   x.id = 
+      // })
+      // console.log(userlocal)
+
+      const imagelocal : Array<imageid> = imageRef.docs.map((doc)=>{
+        const i = new imageid()
+        i.id = doc.id;
+        i.image = doc.data() as image;
+        return i;
+      })
+      //console.log(imagelocal)
+      const convermatch: Array<match> = userlocal.map((doc)=>{
+        const m = new match();
+        m.user = doc.user
+        const temp1 = imagelocal.filter((x)=>{ return x.image.userID == doc.user.userID})
+        const temp = temp1.map((x)=>(x.image.url))
+        m.urlimage = temp[0]
+        return m;
+      })
+      
+      res.status(200).send({
+        "isError":false,
+        "message":"success",
+        data:{
+          converstation: convermatch
+        }
+      });
+
+    }
+  } catch (error) {
+    res.status(500).send('Error getting matclist');
+  }
+}
 
 export default {
   create,
-  editProfile,
+  update,
   register,
   getDiscorverUser,
-  like,
+  match,
   login,
-  sendMessage,
+  getmatch,
+
 };
