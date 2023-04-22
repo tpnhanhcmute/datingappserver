@@ -36,6 +36,7 @@
     "nodemon": "^2.0.22",
     "sequelize": "^6.30.0",
     "sequelize-typescript": "^2.1.5",
-    "twilio": "^4.10.0"
+    "twilio": "^4.10.0",
+    "ts-node": "^9.1.1"
   }
 }
