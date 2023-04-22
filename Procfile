@@ -1,2 +1,2 @@
 worker: npm start
-web: node dist/index.js 8080
+web: node dist/index.js
