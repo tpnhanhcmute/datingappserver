@@ -9,7 +9,7 @@ import authenticationRouter from "./router/authentication.router"
 const app = express();
 app.use(express.json());
 
-const port = 8080;
+const port = 8000;
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
