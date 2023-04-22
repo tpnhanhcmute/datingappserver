@@ -4,7 +4,7 @@
   "description": "",
   "main": "dist/index.js",
   "engines": {
-    "node": "14.x"
+    "node": "18.x"
   },
   "scripts": {
     "heroku-postbuild": "npm install -g ts-node && npm install && tsc",
