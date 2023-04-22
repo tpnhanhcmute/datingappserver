@@ -8,7 +8,7 @@ import imagesRouter from "./router/images.router";
 import authenticationRouter from "./router/authentication.router"
 
 dotenv.config();
-const PORT: number = parseInt(process.env.PORT as string, 3000);
+const PORT: number = parseInt(process.env.PORT as string, 8000);
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
