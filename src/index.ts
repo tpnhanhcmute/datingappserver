@@ -18,9 +18,6 @@ app.use("/location", locationRouter);
 app.use("/images", imagesRouter);
 app.use("",authenticationRouter)
 
-app.get("/", (req, res) => {
-  res.send("Hello Huy dep zai!");
-});
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);
 });
