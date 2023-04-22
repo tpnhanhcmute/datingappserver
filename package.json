@@ -7,6 +7,7 @@
     "node": "18.x"
   },
   "scripts": {
+    "tsc": "./node_modules/typescript/bin/tsc",
     "heroku-postbuild": "npm install -g ts-node && npm install && tsc",
     "postinstall": "tsc",
     "start": "nodemon src/index.ts",
