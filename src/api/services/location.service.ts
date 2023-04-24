@@ -1,4 +1,4 @@
-import { location } from "../model/location.model";
+import { Location } from "../model/location.model";
 
 const NOMINATIM_URL='https://nominatim.openstreetmap.org/'
 
@@ -13,7 +13,7 @@ interface Address {
   country?: string;
 }
 
-export async function getLocation(lat: number, lng: number): Promise<location>{
+export async function getLocation(lat: number, lng: number): Promise<Location>{
  try{
       const url = `${NOMINATIM_URL}/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
 
@@ -24,7 +24,7 @@ export async function getLocation(lat: number, lng: number): Promise<location>{
       const { road, suburb, city, county, state_district, state, postcode, country } = json.address;
       const address: Address = { road, suburb, city, county, state_district, state, postcode, country };
       
-      const lcation = new location()
+      const lcation = {} as Location
       lcation.lat = lat
       lcation.lng = lng
       lcation.name = ""

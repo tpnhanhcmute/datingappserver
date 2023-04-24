@@ -1,8 +1,4 @@
-export class message {
+export interface Content {
   sender: String;
   content: String;
-  constructor() {
-    this.sender = new String();
-    this.content = new String();
-  }
 }

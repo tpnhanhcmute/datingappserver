@@ -1,10 +1,6 @@
-import { image } from "../model/image.model"
+import { Image } from "../model/image.model"
 
-export class imageid{
+export interface ImageID{
     id:String 
-    image:image
-    constructor(){
-        this.id  = new String()
-        this.image = new image()
-    }
+    image:Image
 }

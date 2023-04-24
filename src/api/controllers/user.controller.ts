@@ -5,7 +5,7 @@ import {
   realtimedb,
   sendEmail,
 } from "../services/firebase.service";
-import { user } from "../model/user.model";
+import { User } from "../model/user.model";
 import { hashMessage, randomNumber, getDistance } from "../../utils/utils";
 import {
   collection,
@@ -14,15 +14,15 @@ import {
   getDocs,
 } from "firebase/firestore";
 import {interaction} from "../model/like.model"
-import { location } from "../model/location.model";
-import { point } from "../model/point.model";
-import { discorverUser } from "../dto/discoverUser.dto";
-import { locationid } from "../dto/locationid.dto";
-import { imageid } from "../dto/imageid.model";
-import { image } from "../model/image.model";
-import { userid } from "../dto/userid.dto";
-import { match } from "../dto/match.dto"
-import { interaction2 } from "../model/interaction.model";
+import { Location } from "../model/location.model";
+import { Point } from "../model/point.model";
+import { DiscorverUser } from "../dto/discoverUser.dto";
+import { LocationID } from "../dto/locationid.dto";
+import { ImageID } from "../dto/imageid.model";
+import { Image } from "../model/image.model";
+import { UserID } from "../dto/userid.dto";
+import { Match } from "../dto/match.dto"
+import { Interaction } from "../model/interaction.model";
 
 
 const create = async (req: Request, res: Response): Promise<void> => {
@@ -234,10 +234,9 @@ const sendMessage = async (req: Request, res: Response): Promise<void> => {
 const register = async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body;
 
-  const newUser = new user();
+  const newUser = {} as User
   newUser.email = email;
   newUser.password = await hashMessage(password);
-  const plainUser = Object.assign({}, newUser);
 
   const userRef = database.collection("user");
   try {
@@ -246,9 +245,9 @@ const register = async (req: Request, res: Response): Promise<void> => {
     let otp = randomNumber(4);
     let id = "";
     if (docs.size != 0) {
-      let userInfo: user;
+      let userInfo: User;
       docs.forEach((doc) => {
-        userInfo = doc.data() as user;
+        userInfo = doc.data() as User;
         id = doc.id;
       });
 
@@ -273,7 +272,7 @@ const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
     await sendEmail(email,"Datting appp: Your OTP",otp.toString())
-    const rss = await userRef.add(plainUser);
+    const rss = await userRef.add(newUser);
     res.status(200).send({
       isError: false,
       message: "send OTP successed",
@@ -313,20 +312,23 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
   let locationID: String;
   const userDoc = await userRef.get();
   if (userDoc.exists) {
-    const userData = userDoc.data() as user;
+    const userData = userDoc.data() as User;
     locationID = userRef.id;
   }
-
-  const locationRef = await database
+  let p = {} as Point
+  if(locationID)
+ {
+    const locationRef = await database
     .collection("location")
     .doc(locationID.toString());
-  const locationDoc = await locationRef.get();
-  let p = new point();
-  if (locationDoc.exists) {
-    const location = locationDoc.data() as location;
-    p.latitude = location.lat;
-    p.longitude = location.lng;
-  }
+    const locationDoc = await locationRef.get();
+    
+    if (locationDoc.exists) {
+      const location = locationDoc.data() as Location;
+      p.latitude = location.lat;
+      p.longitude = location.lng;
+    }
+ }
 
   try {
     const [userCollection, locationCollection, imageCollection, likeCollection] =
@@ -338,41 +340,41 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
       ]);
 
     let likeDocs = likeCollection.docs.map(like=>(like.data() as interaction).userIDLiked)
-    let userDocs: Array<userid> = userCollection.docs
+    let userDocs: Array<UserID> = userCollection.docs
       .map((doc) => {
-        let u = new userid()
+        let u = {} as UserID
         u.id = doc.id
-        u.user =  doc.data() as user
+        u.user =  doc.data() as User
         return u
       }).filter(user=>user.user.age >= (minAge as Number) && user.user.age <=(maxAge as Number) && getGender.includes(user.user.gender) && !likeDocs.includes(user.id))
-    let locationDoc: Array<locationid> = locationCollection.docs.map((doc) => {
-      const lcationid = new locationid();
+    let locationDoc: Array<LocationID> = locationCollection.docs.map((doc) => {
+      const lcationid ={} as LocationID
       lcationid.id = doc.id;
-      lcationid.location = doc.data() as location;
+      lcationid.location = doc.data() as Location;
       return lcationid;
     });
 
-    let imageDoc: Array<imageid> = imageCollection.docs.map((doc) => {
-      const imgeid = new imageid();
+    let imageDoc: Array<ImageID> = imageCollection.docs.map((doc) => {
+      const imgeid = {} as ImageID
       imgeid.id = doc.id;
-      imgeid.image = doc.data() as image;
+      imgeid.image = doc.data() as Image;
 
       return imgeid;
     });
 
-    let userDistance: Array<discorverUser> = userDocs.map((userDoc) => {
+    let userDistance: Array<DiscorverUser> = userDocs.map((userDoc) => {
       const locationId = userDoc.id;
       let distance = Number.MAX_VALUE;
       const arrayLocation = locationDoc.filter(
         (location) => location.id == userDoc.id
       );
       if (arrayLocation.length > 0) {
-        let point2 = new point();
+        let point2 = {} as Point
         point2.latitude = arrayLocation[0].location.lat;
         point2.longitude = arrayLocation[0].location.lng;
         distance = getDistance(p, point2) as number;
       }
-      let dcUser = new discorverUser();
+      let dcUser = {} as  DiscorverUser
       dcUser.age = userDoc.user.age;
       dcUser.fullName = userDoc.user.fullName;
       (dcUser.hobby = userDoc.user.hobby), (dcUser.occupation = userDoc.user.occupation);
@@ -403,7 +405,7 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
 const login = async(req: Request, res: Response): Promise<void> =>{
   const {email,password} = req.body;
   const userRef = database.collection("user");
-  const newUser = new user();
+  const newUser = {} as User
 
   try
   {
@@ -459,11 +461,11 @@ const getmatch = async(req: Request, res: Response): Promise<void> =>{
         database.collection("user").get(),
         database.collection("image").get(),
       ]);
-      const likelocal = likeRef.docs.map(doc=>(doc.data() as interaction2))
-      const userlocal : Array<userid> = useref.docs.map((doc)=>{
-        const u = new userid();
+      const likelocal = likeRef.docs.map(doc=>(doc.data() as Interaction))
+      const userlocal : Array<UserID> = useref.docs.map((doc)=>{
+        const u = {} as UserID
         u.id = doc.id;
-        u.user = doc.data() as user;
+        u.user = doc.data() as User;
         return u
       }).filter((doc)=>(likelocal.map(x=>x.user_id_liked).includes(doc.id)))
       console.log(userlocal)
@@ -472,15 +474,15 @@ const getmatch = async(req: Request, res: Response): Promise<void> =>{
       // })
       // console.log(userlocal)
 
-      const imagelocal : Array<imageid> = imageRef.docs.map((doc)=>{
-        const i = new imageid()
+      const imagelocal : Array<ImageID> = imageRef.docs.map((doc)=>{
+        const i = {} as ImageID
         i.id = doc.id;
-        i.image = doc.data() as image;
+        i.image = doc.data() as Image;
         return i;
       })
       //console.log(imagelocal)
-      const matchlist: Array<match> = userlocal.map((doc)=>{
-        const m = new match();
+      const matchlist: Array<Match> = userlocal.map((doc)=>{
+        const m = {} as Match
         m.user = doc.user
         const temp1 = imagelocal.filter((x)=>{ return x.image.userID == doc.id})
         const temp = temp1.map((x)=>(x.image.url))
@@ -521,11 +523,11 @@ const getConver = async(req: Request, res: Response): Promise<void> =>{
         database.collection("user").get(),
         database.collection("image").get(),
       ]);
-      const likelocal = likeRef.docs.map(doc=>(doc.data() as interaction2))
-      const userlocal : Array<userid> = useref.docs.map((doc)=>{
-        const u = new userid();
+      const likelocal = likeRef.docs.map(doc=>(doc.data() as Interaction))
+      const userlocal : Array<UserID> = useref.docs.map((doc)=>{
+        const u = {} as UserID
         u.id = doc.id;
-        u.user = doc.data() as user;
+        u.user = doc.data() as User;
         return u
       }).filter((doc)=>(likelocal.map(x=>x.user_id_liked).includes(doc.id)))
       console.log(userlocal)
@@ -534,15 +536,15 @@ const getConver = async(req: Request, res: Response): Promise<void> =>{
       // })
       // console.log(userlocal)
 
-      const imagelocal : Array<imageid> = imageRef.docs.map((doc)=>{
-        const i = new imageid()
+      const imagelocal : Array<ImageID> = imageRef.docs.map((doc)=>{
+        const i = {} as ImageID
         i.id = doc.id;
-        i.image = doc.data() as image;
+        i.image = doc.data() as Image;
         return i;
       })
       //console.log(imagelocal)
-      const convermatch: Array<match> = userlocal.map((doc)=>{
-        const m = new match();
+      const convermatch: Array<Match> = userlocal.map((doc)=>{
+        const m = {} as Match
         m.user = doc.user
         const temp1 = imagelocal.filter((x)=>{ return x.image.userID == doc.id})
         const temp = temp1.map((x)=>(x.image.url))
@@ -569,8 +571,6 @@ export default {
   update,
   register,
   getDiscorverUser,
-  match,
   login,
   getmatch,
-
 };

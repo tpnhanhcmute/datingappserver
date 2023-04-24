@@ -1,13 +1,7 @@
-import { user } from "../model/user.model"
+import { User } from "../model/user.model"
 
-export class match{
+export interface Match{
     // id:String 
-    user:user
+    user:User
     urlimage:String
-
-    constructor(){
-        // this.id  = new String()
-        this.urlimage = new String()
-        this.user = new user()
-    }
 }

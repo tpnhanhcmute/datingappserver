@@ -1,8 +1,4 @@
-export class image{
+export interface Image{
     url:String
     userID:String
-    constructor(){
-        this.url =new String()
-        this.userID = new String()
-    }
 }

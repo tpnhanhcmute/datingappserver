@@ -1,10 +1,6 @@
-import { user } from "../model/user.model"
+import { User } from "../model/user.model"
 
-export class userid{
+export interface UserID{
     id:String 
-    user:user 
-    constructor(){
-        this.id = new String()
-        this.user = new user()
-    }
+    user:User 
 }

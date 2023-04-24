@@ -1,6 +1,6 @@
 import { Request,Response } from "express";
 import {database} from "../services/firebase.service"
-import { user} from "../model/user.model"
+import { User} from "../model/user.model"
 
 const authentication = async (req: Request, res: Response): Promise<void>=>{
     try{

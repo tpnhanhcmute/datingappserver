@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import * as geolib from 'geolib';
-import {point} from '../api/model/point.model'
+import {Point} from '../api/model/point.model'
 const hashMessage =async function hashMessage(message: string): Promise<string> {
     const hash = crypto.createHash('sha256');
     hash.update(message);
@@ -15,7 +15,7 @@ const randomNumber = function randomNumber(length:number) : String {
     }
     return numberRandom
 }
-const getDistance = function distance(point1: point, point2: point): Number {
+const getDistance = function distance(point1: Point, point2: Point): Number {
     return geolib.getDistance(
       { latitude: point1.latitude as number, longitude: point1.longitude as number },
       { latitude: point2.latitude as number, longitude: point2.longitude as number }
