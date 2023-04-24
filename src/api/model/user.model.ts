@@ -25,7 +25,5 @@ export class user {
       this.isAuth = false
       this.isFirstLogin = false,
       this.occupation = new String()
-      this.userID = new String()
     }
   }
-}
