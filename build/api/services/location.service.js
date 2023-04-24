@@ -10,7 +10,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getLocation = void 0;
-const location_model_1 = require("../model/location.model");
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/';
 function getLocation(lat, lng) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -21,7 +20,7 @@ function getLocation(lat, lng) {
             const { lat: latitude, lon: longitude } = json;
             const { road, suburb, city, county, state_district, state, postcode, country } = json.address;
             const address = { road, suburb, city, county, state_district, state, postcode, country };
-            const lcation = new location_model_1.location();
+            const lcation = {};
             lcation.lat = lat;
             lcation.lng = lng;
             lcation.name = "";

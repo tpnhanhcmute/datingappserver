@@ -273,6 +273,12 @@ const register = async (req: Request, res: Response): Promise<void> => {
     }
     await sendEmail(email,"Datting appp: Your OTP",otp.toString())
     const rss = await userRef.add(newUser);
+    const locate = {} as Location
+    locate.lat=0
+    locate.lng=0
+    locate.name=""
+    database.collection('location').doc(rss.id).set(locate)
+
     res.status(200).send({
       isError: false,
       message: "send OTP successed",
@@ -396,7 +402,7 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
     });
   } catch (error) {
     res.status(400).send({
-      isError: false,
+      isError: true,
       message: error,
     });
   }

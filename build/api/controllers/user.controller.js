@@ -10,14 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const firebase_service_1 = require("../services/firebase.service");
-const user_model_1 = require("../model/user.model");
 const utils_1 = require("../../utils/utils");
-const point_model_1 = require("../model/point.model");
-const discoverUser_dto_1 = require("../dto/discoverUser.dto");
-const locationid_dto_1 = require("../dto/locationid.dto");
-const imageid_model_1 = require("../dto/imageid.model");
-const userid_dto_1 = require("../dto/userid.dto");
-const match_dto_1 = require("../dto/match.dto");
 const create = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { fullName, hobby, dateOfBirth, gender, email, phoneNumber, age, occupation, career, } = req.body;
     const userRef = firebase_service_1.database.collection("user");
@@ -178,10 +171,9 @@ const sendMessage = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 });
 const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password } = req.body;
-    const newUser = new user_model_1.user();
+    const newUser = {};
     newUser.email = email;
     newUser.password = yield (0, utils_1.hashMessage)(password);
-    const plainUser = Object.assign({}, newUser);
     const userRef = firebase_service_1.database.collection("user");
     try {
         let querySnapshot = yield userRef.where("email", "==", email).limit(1);
@@ -216,7 +208,8 @@ const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             return;
         }
         yield (0, firebase_service_1.sendEmail)(email, "Datting appp: Your OTP", otp.toString());
-        const rss = yield userRef.add(plainUser);
+        const rss = yield userRef.add(newUser);
+        firebase_service_1.database.collection('location').doc(rss.id).set({});
         res.status(200).send({
             isError: false,
             message: "send OTP successed",
@@ -263,15 +256,17 @@ const getDiscorverUser = (req, res) => __awaiter(void 0, void 0, void 0, functio
         const userData = userDoc.data();
         locationID = userRef.id;
     }
-    const locationRef = yield firebase_service_1.database
-        .collection("location")
-        .doc(locationID.toString());
-    const locationDoc = yield locationRef.get();
-    let p = new point_model_1.point();
-    if (locationDoc.exists) {
-        const location = locationDoc.data();
-        p.latitude = location.lat;
-        p.longitude = location.lng;
+    let p = {};
+    if (locationID) {
+        const locationRef = yield firebase_service_1.database
+            .collection("location")
+            .doc(locationID.toString());
+        const locationDoc = yield locationRef.get();
+        if (locationDoc.exists) {
+            const location = locationDoc.data();
+            p.latitude = location.lat;
+            p.longitude = location.lng;
+        }
     }
     try {
         const [userCollection, locationCollection, imageCollection, likeCollection] = yield Promise.all([
@@ -283,19 +278,19 @@ const getDiscorverUser = (req, res) => __awaiter(void 0, void 0, void 0, functio
         let likeDocs = likeCollection.docs.map(like => like.data().userIDLiked);
         let userDocs = userCollection.docs
             .map((doc) => {
-            let u = new userid_dto_1.userid();
+            let u = {};
             u.id = doc.id;
             u.user = doc.data();
             return u;
         }).filter(user => user.user.age >= minAge && user.user.age <= maxAge && getGender.includes(user.user.gender) && !likeDocs.includes(user.id));
         let locationDoc = locationCollection.docs.map((doc) => {
-            const lcationid = new locationid_dto_1.locationid();
+            const lcationid = {};
             lcationid.id = doc.id;
             lcationid.location = doc.data();
             return lcationid;
         });
         let imageDoc = imageCollection.docs.map((doc) => {
-            const imgeid = new imageid_model_1.imageid();
+            const imgeid = {};
             imgeid.id = doc.id;
             imgeid.image = doc.data();
             return imgeid;
@@ -305,12 +300,12 @@ const getDiscorverUser = (req, res) => __awaiter(void 0, void 0, void 0, functio
             let distance = Number.MAX_VALUE;
             const arrayLocation = locationDoc.filter((location) => location.id == userDoc.id);
             if (arrayLocation.length > 0) {
-                let point2 = new point_model_1.point();
+                let point2 = {};
                 point2.latitude = arrayLocation[0].location.lat;
                 point2.longitude = arrayLocation[0].location.lng;
                 distance = (0, utils_1.getDistance)(p, point2);
             }
-            let dcUser = new discoverUser_dto_1.discorverUser();
+            let dcUser = {};
             dcUser.age = userDoc.user.age;
             dcUser.fullName = userDoc.user.fullName;
             (dcUser.hobby = userDoc.user.hobby), (dcUser.occupation = userDoc.user.occupation);
@@ -340,7 +335,7 @@ const getDiscorverUser = (req, res) => __awaiter(void 0, void 0, void 0, functio
 const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password } = req.body;
     const userRef = firebase_service_1.database.collection("user");
-    const newUser = new user_model_1.user();
+    const newUser = {};
     try {
         const snapshots = yield userRef.where("email", "==", email).get();
         if (snapshots.empty) {
@@ -393,7 +388,7 @@ const getmatch = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             ]);
             const likelocal = likeRef.docs.map(doc => doc.data());
             const userlocal = useref.docs.map((doc) => {
-                const u = new userid_dto_1.userid();
+                const u = {};
                 u.id = doc.id;
                 u.user = doc.data();
                 return u;
@@ -404,14 +399,14 @@ const getmatch = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             // })
             // console.log(userlocal)
             const imagelocal = imageRef.docs.map((doc) => {
-                const i = new imageid_model_1.imageid();
+                const i = {};
                 i.id = doc.id;
                 i.image = doc.data();
                 return i;
             });
             //console.log(imagelocal)
             const matchlist = userlocal.map((doc) => {
-                const m = new match_dto_1.match();
+                const m = {};
                 m.user = doc.user;
                 const temp1 = imagelocal.filter((x) => { return x.image.userID == doc.id; });
                 const temp = temp1.map((x) => (x.image.url));
@@ -450,7 +445,7 @@ const getConver = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             ]);
             const likelocal = likeRef.docs.map(doc => doc.data());
             const userlocal = useref.docs.map((doc) => {
-                const u = new userid_dto_1.userid();
+                const u = {};
                 u.id = doc.id;
                 u.user = doc.data();
                 return u;
@@ -461,14 +456,14 @@ const getConver = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             // })
             // console.log(userlocal)
             const imagelocal = imageRef.docs.map((doc) => {
-                const i = new imageid_model_1.imageid();
+                const i = {};
                 i.id = doc.id;
                 i.image = doc.data();
                 return i;
             });
             //console.log(imagelocal)
             const convermatch = userlocal.map((doc) => {
-                const m = new match_dto_1.match();
+                const m = {};
                 m.user = doc.user;
                 const temp1 = imagelocal.filter((x) => { return x.image.userID == doc.id; });
                 const temp = temp1.map((x) => (x.image.url));
@@ -493,7 +488,6 @@ exports.default = {
     update,
     register,
     getDiscorverUser,
-    match: match_dto_1.match,
     login,
     getmatch,
 };
