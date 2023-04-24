@@ -19,6 +19,11 @@ app.use("/images", imagesRouter);
 app.get("/", (req, res) => {
   res.send("Hello Huy dep zai!");
 });
+
+app.get("/ping", (req, res) => {
+  res.send("ping pong!");
+});
+
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);
 });
