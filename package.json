@@ -2,39 +2,42 @@
   "name": "datingappserver",
   "version": "1.0.0",
   "description": "",
-  "main": "src/index.js",
+  "main": "index.js",
+  "engines": {
+    "node": " 18.12.0"
+  },
   "scripts": {
-    "start": "nodemon src/index.ts",
+    "heroku-postbuild": "npm install -g ts-node && npm install && tsc",
+    "postinstall": "tsc",
+    "start": "tsc && node build/index.js",
+    "dev": "nodemon src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/bcrypt": "^5.0.0",
+    "@types/dotenv": "^8.2.0",
     "@types/express": "^4.17.17",
     "@types/haversine": "^1.1.5",
     "@types/node": "^18.15.11",
-    "haversine": "^1.1.1",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.0.3"
-  },
-  "dependencies": {
-    "@types/dotenv": "^8.2.0",
     "@types/node-geocoder": "^4.2.1",
     "@types/nodemailer": "^6.4.7",
-    "bcrypt": "^5.1.0",
+    "bcrypt": "^5.1.0"
+  },
+  "dependencies": {
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "firebase": "^9.19.1",
     "firebase-admin": "^11.5.0",
     "geolib": "^3.3.3",
-    "mysql2": "^3.2.0",
+    "haversine": "^1.1.1",
     "node-fetch": "^3.3.1",
     "node-geocoder": "^4.2.0",
     "nodemailer": "^6.9.1",
     "nodemon": "^2.0.22",
-    "sequelize": "^6.30.0",
-    "sequelize-typescript": "^2.1.5",
-    "twilio": "^4.10.0"
+    "ts-node": "^9.1.1",
+    "typescript": "^5.0.4"
   }
 }
