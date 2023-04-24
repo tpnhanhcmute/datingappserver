@@ -482,7 +482,7 @@ const getmatch = async(req: Request, res: Response): Promise<void> =>{
       const matchlist: Array<match> = userlocal.map((doc)=>{
         const m = new match();
         m.user = doc.user
-        const temp1 = imagelocal.filter((x)=>{ return x.image.userID == doc.user.userID})
+        const temp1 = imagelocal.filter((x)=>{ return x.image.userID == doc.id})
         const temp = temp1.map((x)=>(x.image.url))
         m.urlimage = temp[0]
         return m;
