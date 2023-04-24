@@ -259,8 +259,8 @@ const register = async (req: Request, res: Response): Promise<void> => {
           isError: false,
           message: "send otp successed",
           data: {
-            id: id,
-            otp: otp,
+            email: email,
+            otp: otp
           },
         });
       } else {
