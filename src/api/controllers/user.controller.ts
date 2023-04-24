@@ -421,23 +421,30 @@ const login = async(req: Request, res: Response): Promise<void> =>{
     res.status(404).send('user is not exist !!');
     } 
     else {
-      const snapshot = await userRef.where("email","==",email).where("password","==",password).get();  
+      const passwordHash = await hashMessage(password);
+      const snapshot = await userRef.where("email","==",email).where("password","==",passwordHash).get();  
       if(snapshot.empty){
         res.status(404).send('password is not correct')
       }else{
       // console.log(x.docs[0].data().career)
       const userdoc = snapshot.docs[0].data();
+
       newUser.career = userdoc.career;
       newUser.age = userdoc.age;
+      newUser.email = userdoc.email
       newUser.occupation = userdoc.occupation;
       newUser.fullName = userdoc.fullName;
       newUser.dateOfBirth = userdoc.dateOfBirth;
       newUser.hobby = userdoc.hobby;
+      newUser.isFirstLogin = userdoc.isFirstLogin;
+      newUser.gender = userdoc.gender;
+      newUser.dateOfBirth = userdoc.dateOfBirth;
       
       res.status(200).send({
         "isError":false,
         "message":"success",
         data: {
+          id:snapshot.docs[0].id,
           user: newUser
         }
       });

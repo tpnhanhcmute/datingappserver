@@ -5,7 +5,7 @@ export interface User {
     password: String
     fullName: String
     career:String
-    dateOfBirth: Date
+    dateOfBirth: String
     age:Number
     hobby:Array<String>
     gender:String
