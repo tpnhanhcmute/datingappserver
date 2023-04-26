@@ -79,7 +79,6 @@ const update = async (req: Request, res: Response): Promise<void> => {
   const userRef = database.collection("user").doc(userID);
   userRef
     .update({
-      userID,
       fullName,
       hobby,
       dateOfBirth,
@@ -91,11 +90,19 @@ const update = async (req: Request, res: Response): Promise<void> => {
       career,
     })
     .then((userRef) => {
-      res.status(200).json({ message: "Updated Success" });
+      res.status(200).send({
+        isError:false,
+        message: "Update successfully",
+        data:{}
+      })
     })
 
     .catch((error) => {
-      res.status(400).json({ error });
+      res.status(400).send({
+        isError:true,
+        message: "Update falure",
+        data:{}
+      })
     });
 };
 
