@@ -237,6 +237,7 @@ const register = async (req: Request, res: Response): Promise<void> => {
   const newUser = {} as User
   newUser.email = email;
   newUser.password = await hashMessage(password);
+  newUser.isFirstLogin = true
 
   const userRef = database.collection("user");
   try {
