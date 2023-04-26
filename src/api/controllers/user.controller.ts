@@ -63,29 +63,11 @@ const create = async (req: Request, res: Response): Promise<void> => {
 };
 
 const update = async (req: Request, res: Response): Promise<void> => {
-  const {
-    userID,
-    fullName,
-    hobby,
-    dateOfBirth,
-    gender,
-    age,
-    occupation,
-    career,
-  } = req.body;
+  const user = req.body as UserID
   let isFirstLogin = false;
-  const userRef = database.collection("user").doc(userID);
+  const userRef = database.collection("user").doc(user.id.toString());
   userRef
-    .update({
-      fullName,
-      hobby,
-      dateOfBirth,
-      gender,
-      age,
-      isFirstLogin,
-      occupation,
-      career,
-    })
+    .set(user.user,{ merge: true })
     .then((userRef) => {
       res.status(200).send({
         isError:false,

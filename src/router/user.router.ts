@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.post("/create", userController.create);
 
-router.patch("/update", userController.update);
+router.post("/update", userController.update);
 
 router.post("/users", userController.create);
 
