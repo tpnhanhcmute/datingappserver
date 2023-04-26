@@ -75,7 +75,7 @@ const update = async (req: Request, res: Response): Promise<void> => {
     occupation,
     career,
   } = req.body;
-
+  let isFirstLogin = false;
   const userRef = database.collection("user").doc(userID);
   userRef
     .update({
@@ -86,6 +86,7 @@ const update = async (req: Request, res: Response): Promise<void> => {
       email,
       phoneNumber,
       age,
+      isFirstLogin,
       occupation,
       career,
     })
