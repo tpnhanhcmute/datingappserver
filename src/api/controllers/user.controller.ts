@@ -6,7 +6,7 @@ import {
   sendEmail,
 } from "../services/firebase.service";
 import { User } from "../model/user.model";
-import { hashMessage, randomNumber, getDistance } from "../../utils/utils";
+import { hashMessage, randomNumber, getDistance, getAge } from "../../utils/utils";
 import {
   collection,
   query as firestoreQuery,
@@ -28,8 +28,10 @@ import { log } from "console";
 import { sendMessage } from "../dto/sendMessage.dto";
 
 const update = async (req: Request, res: Response): Promise<void> => {
+  
   const user = req.body as UserID;
   let isFirstLogin = false;
+  user.user.age =getAge(user.user.dateOfBirth)
   const userRef = database.collection("user").doc(user.id.toString());
   userRef
     .set(user.user, { merge: true })

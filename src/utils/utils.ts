@@ -21,4 +21,12 @@ const getDistance = function distance(point1: Point, point2: Point): Number {
       { latitude: point2.latitude as number, longitude: point2.longitude as number }
     )/1000;
 }
-export {hashMessage, randomNumber,getDistance}
+const getAge = (dateOfBirth: string):Number=>{
+    const birthDate: Date = new Date(dateOfBirth);
+    const differenceInMs: number = Date.now() - birthDate.getTime();
+    const ageInMs: number = new Date(differenceInMs).getFullYear() - 1970;
+    const age: number = Math.floor(ageInMs);
+    return age
+}
+
+export {hashMessage, randomNumber,getDistance,getAge}
