@@ -22,11 +22,15 @@ const getDistance = function distance(point1: Point, point2: Point): Number {
     )/1000;
 }
 const getAge = (dateOfBirth: string):Number=>{
-    const birthDate: Date = new Date(dateOfBirth);
-    const differenceInMs: number = Date.now() - birthDate.getTime();
-    const ageInMs: number = new Date(differenceInMs).getFullYear() - 1970;
-    const age: number = Math.floor(ageInMs);
-    return age
+    const [day, month, year] = dateOfBirth.split("/").map(Number);
+    const birthDate: Date = new Date(year, month - 1, day);
+
+  // Calculate the age in years
+  const differenceInMs: number = Date.now() - birthDate.getTime();
+  const ageInMs: number = new Date(differenceInMs).getFullYear() - 1970;
+  const age: number = Math.floor(ageInMs);
+
+  return age;
 }
 
 export {hashMessage, randomNumber,getDistance,getAge}
