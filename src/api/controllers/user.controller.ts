@@ -75,6 +75,7 @@ const update = async (req: Request, res: Response): Promise<void> => {
         data:{}
       })
     })
+    
 
     .catch((error) => {
       res.status(400).send({
