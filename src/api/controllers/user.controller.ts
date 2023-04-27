@@ -488,12 +488,16 @@ const getmatch = async (req: Request, res: Response): Promise<void> => {
         isError: false,
         message: "success",
         data: {
-          matchlist: matchlist,
+          match: matchlist.map(x=>x.user),
+          image: matchlist.map(x=>x.urlimage)
         },
       });
     }
   } catch (error) {
-    res.status(500).send("Error getting matclist");
+    res.status(500).send({
+      isError: true,
+      message:"can not log in !!"
+    })
   }
 };
 
@@ -556,8 +560,7 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
         "isError":false,
         "message":"success",
         data:{
-          match: matchlist.map(x=>x.user),
-          image: matchlist.map(x=>x.urlimage)
+          
         }
       });
     }
@@ -572,7 +575,7 @@ export default {
   chat,
   register,
   getDiscorverUser,
-  match,
+  
   login,
   getmatch,
   
