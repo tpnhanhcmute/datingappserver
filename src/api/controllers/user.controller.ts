@@ -23,41 +23,9 @@ import { Image } from "../model/image.model";
 import { UserID } from "../dto/userid.dto";
 import { Match } from "../dto/match.dto";
 import { Interaction } from "../model/interaction.model";
-
-const create = async (req: Request, res: Response): Promise<void> => {
-  const {
-    fullName,
-    hobby,
-    dateOfBirth,
-    gender,
-    email,
-    phoneNumber,
-    age,
-    occupation,
-    career,
-  } = req.body;
-
-  const userRef = database.collection("user");
-  userRef
-    .add({
-      fullName,
-      hobby,
-      dateOfBirth,
-      gender,
-      email,
-      phoneNumber,
-      age,
-      occupation,
-      career,
-    })
-    .then((userRef) => {
-      res.status(200).json({ userRef });
-    })
-
-    .catch((error) => {
-      res.status(400).json({ error });
-    });
-};
+import { LikeUser } from "../dto/likeUser.dto";
+import { log } from "console";
+import { sendMessage } from "../dto/sendMessage.dto";
 
 const update = async (req: Request, res: Response): Promise<void> => {
   const user = req.body as UserID;
@@ -83,9 +51,9 @@ const update = async (req: Request, res: Response): Promise<void> => {
 };
 
 const updateMessageID = async (
-  userID: string,
-  otherUserID: string,
-  messageId: string
+  userID: String,
+  otherUserID: String,
+  messageId: String
 ) => {
   const like = database.collection("like");
 
@@ -127,53 +95,51 @@ const getFullName = async (ID) => {
 };
 
 const like = async (req: Request, res: Response): Promise<void> => {
-  const { userID, isLike, otherUserID } = req.body;
+  const likeRequest = req.body as LikeUser;
   const like = database.collection("like");
   const date = new Date().toLocaleString();
 
   try {
     await like.add({
-      userID,
-      isLike,
-      otherUserID,
-      messageID: "", // Tạo một field messageID trống
+      userID: likeRequest.userID,
+      isLike: likeRequest.isLike,
+      otherUserID: likeRequest.ortherUserID,
+      messageID: "",
     });
 
     // Tạo query để kiểm tra tương thích
     const matchQuery = await like
-      .where("userID", "==", otherUserID)
-      .where("otherUserID", "==", userID)
-      .where("isLike", "==", "true")
+      .where("userID", "==", likeRequest.ortherUserID)
+      .where("otherUserID", "==", likeRequest.userID)
+      .where("isLike", "==", true)
       .get();
+
+    console.log(matchQuery.size);
 
     // Kiểm tra và trả về kết quả
     if (matchQuery.size > 0) {
       const newMessageRef = realtimedb.ref("message").push(); // Tạo một DocumentReference mới
       const newMessageId = newMessageRef.key; // Lấy ID của document vừa tạo
 
-      const sender1Content = {
-        senderID: userID,
-        content: "create content success",
-        date,
-      };
-      const sender2Content = {
-        senderID: otherUserID,
-        content: "create content success",
-        date,
-      };
       newMessageRef.set({
-        listContent: [sender1Content, sender2Content],
+        match: `match on ${date}`,
       });
 
-      await Promise.all([updateMessageID(userID, otherUserID, newMessageId)]);
+      await Promise.all([
+        updateMessageID(
+          likeRequest.userID,
+          likeRequest.ortherUserID,
+          newMessageId
+        ),
+      ]);
 
       res.status(200).json({
         message: "It's a match!",
         data: {
-          otherUserID,
+          otherUserID: likeRequest.ortherUserID,
           imageUrl: "chua lam",
           messageID: newMessageId,
-          fullName: await getFullName(otherUserID),
+          fullName: await getFullName(likeRequest.ortherUserID),
         },
       });
     } else {
@@ -184,26 +150,26 @@ const like = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-const sendMessage = async (req: Request, res: Response): Promise<void> => {
-  const { userID, messageID, content } = req.body;
+const chat = async (req: Request, res: Response): Promise<void> => {
+  const sendMessage = req.body as sendMessage;
   const date = new Date().toLocaleString();
 
-  const messageRef = realtimedb.ref(`message/${messageID}/listContent`);
+  const messageRef = realtimedb.ref(`message/${sendMessage.messageID}`);
   const newMessageRef = messageRef.push();
 
   try {
     await newMessageRef.set({
-      content,
+      content: sendMessage.content,
       date,
-      senderID: userID,
+      senderID: sendMessage.userID,
     });
     res.status(200).json({
       message: "Tin nhắn đã được gửi thành công",
       data: {
         messageData: {
-          messageID,
-          senderID: userID,
-          content,
+          messageID: sendMessage.messageID,
+          senderID: sendMessage.userID,
+          content: sendMessage.content,
           date,
         },
       },
@@ -594,10 +560,9 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
 };
 
 export default {
-  create,
   update,
   like,
-  sendMessage,
+  chat,
   register,
   getDiscorverUser,
   login,

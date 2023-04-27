@@ -34,26 +34,24 @@ const create = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     });
 });
 const update = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { userID, fullName, hobby, dateOfBirth, gender, email, phoneNumber, age, occupation, career, } = req.body;
-    const userRef = firebase_service_1.database.collection("user").doc(userID);
+    const user = req.body;
+    let isFirstLogin = false;
+    const userRef = firebase_service_1.database.collection("user").doc(user.id.toString());
     userRef
-        .update({
-        userID,
-        fullName,
-        hobby,
-        dateOfBirth,
-        gender,
-        email,
-        phoneNumber,
-        age,
-        occupation,
-        career,
-    })
+        .set(user.user, { merge: true })
         .then((userRef) => {
-        res.status(200).json({ message: "Updated Success" });
+        res.status(200).send({
+            isError: false,
+            message: "Update successfully",
+            data: {},
+        });
     })
         .catch((error) => {
-        res.status(400).json({ error });
+        res.status(400).send({
+            isError: true,
+            message: "Update falure",
+            data: {},
+        });
     });
 });
 const updateMessageID = (userID, otherUserID, messageId) => __awaiter(void 0, void 0, void 0, function* () {
@@ -89,47 +87,36 @@ const getFullName = (ID) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 const like = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { userID, isLike, otherUserID } = req.body;
+    const likeRequest = req.body;
     const like = firebase_service_1.database.collection("like");
     const date = new Date().toLocaleString();
     try {
         yield like.add({
-            userID,
-            isLike,
-            otherUserID,
-            messageID: "", // Tạo một field messageID trống
+            likeRequest,
         });
         // Tạo query để kiểm tra tương thích
         const matchQuery = yield like
-            .where("userID", "==", otherUserID)
-            .where("otherUserID", "==", userID)
+            .where("userID", "==", likeRequest.ortherUserID)
+            .where("otherUserID", "==", likeRequest.userID)
             .where("isLike", "==", "true")
             .get();
         // Kiểm tra và trả về kết quả
         if (matchQuery.size > 0) {
             const newMessageRef = firebase_service_1.realtimedb.ref("message").push(); // Tạo một DocumentReference mới
             const newMessageId = newMessageRef.key; // Lấy ID của document vừa tạo
-            const sender1Content = {
-                senderID: userID,
-                content: "create content success",
-                date,
-            };
-            const sender2Content = {
-                senderID: otherUserID,
-                content: "create content success",
-                date,
-            };
             newMessageRef.set({
-                listContent: [sender1Content, sender2Content],
+                match: `match on ${date}`,
             });
-            yield Promise.all([updateMessageID(userID, otherUserID, newMessageId)]);
+            yield Promise.all([
+                updateMessageID(likeRequest.userID.toString(), likeRequest.ortherUserID.toString(), newMessageId),
+            ]);
             res.status(200).json({
                 message: "It's a match!",
                 data: {
-                    otherUserID,
+                    otherUserID: likeRequest.ortherUserID,
                     imageUrl: "chua lam",
                     messageID: newMessageId,
-                    fullName: yield getFullName(otherUserID),
+                    fullName: yield getFullName(likeRequest.ortherUserID),
                 },
             });
         }
@@ -174,6 +161,7 @@ const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const newUser = {};
     newUser.email = email;
     newUser.password = yield (0, utils_1.hashMessage)(password);
+    newUser.isFirstLogin = true;
     const userRef = firebase_service_1.database.collection("user");
     try {
         let querySnapshot = yield userRef.where("email", "==", email).limit(1);
@@ -194,7 +182,7 @@ const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                     message: "send otp successed",
                     data: {
                         email: email,
-                        otp: otp
+                        otp: otp,
                     },
                 });
             }
@@ -209,7 +197,11 @@ const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         }
         yield (0, firebase_service_1.sendEmail)(email, "Datting appp: Your OTP", otp.toString());
         const rss = yield userRef.add(newUser);
-        firebase_service_1.database.collection('location').doc(rss.id).set({});
+        const locate = {};
+        locate.lat = 0;
+        locate.lng = 0;
+        locate.name = "";
+        firebase_service_1.database.collection("location").doc(rss.id).set(locate);
         res.status(200).send({
             isError: false,
             message: "send OTP successed",
@@ -269,20 +261,28 @@ const getDiscorverUser = (req, res) => __awaiter(void 0, void 0, void 0, functio
         }
     }
     try {
-        const [userCollection, locationCollection, imageCollection, likeCollection] = yield Promise.all([
+        const [userCollection, locationCollection, imageCollection, likeCollection,] = yield Promise.all([
             firebase_service_1.database.collection("user").where("isAuth", "==", true).get(),
             firebase_service_1.database.collection("location").get(),
             firebase_service_1.database.collection("image").get(),
-            firebase_service_1.database.collection("like").where("userIDLike", "==", userID).where("isLike", "==", true).get()
+            firebase_service_1.database
+                .collection("like")
+                .where("userIDLike", "==", userID)
+                .where("isLike", "==", true)
+                .get(),
         ]);
-        let likeDocs = likeCollection.docs.map(like => like.data().userIDLiked);
+        let likeDocs = likeCollection.docs.map((like) => like.data().userIDLiked);
         let userDocs = userCollection.docs
             .map((doc) => {
             let u = {};
             u.id = doc.id;
             u.user = doc.data();
             return u;
-        }).filter(user => user.user.age >= minAge && user.user.age <= maxAge && getGender.includes(user.user.gender) && !likeDocs.includes(user.id));
+        })
+            .filter((user) => user.user.age >= minAge &&
+            user.user.age <= maxAge &&
+            getGender.includes(user.user.gender) &&
+            !likeDocs.includes(user.id));
         let locationDoc = locationCollection.docs.map((doc) => {
             const lcationid = {};
             lcationid.id = doc.id;
@@ -308,7 +308,8 @@ const getDiscorverUser = (req, res) => __awaiter(void 0, void 0, void 0, functio
             let dcUser = {};
             dcUser.age = userDoc.user.age;
             dcUser.fullName = userDoc.user.fullName;
-            (dcUser.hobby = userDoc.user.hobby), (dcUser.occupation = userDoc.user.occupation);
+            (dcUser.hobby = userDoc.user.hobby),
+                (dcUser.occupation = userDoc.user.occupation);
             dcUser.distance = distance;
             dcUser.imageUrl = imageDoc
                 .filter((x) => {
@@ -327,7 +328,7 @@ const getDiscorverUser = (req, res) => __awaiter(void 0, void 0, void 0, functio
     }
     catch (error) {
         res.status(400).send({
-            isError: false,
+            isError: true,
             message: error,
         });
     }
@@ -339,34 +340,43 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const snapshots = yield userRef.where("email", "==", email).get();
         if (snapshots.empty) {
-            res.status(404).send('user is not exist !!');
+            res.status(404).send("user is not exist !!");
         }
         else {
-            const snapshot = yield userRef.where("email", "==", email).where("password", "==", password).get();
+            const passwordHash = yield (0, utils_1.hashMessage)(password);
+            const snapshot = yield userRef
+                .where("email", "==", email)
+                .where("password", "==", passwordHash)
+                .get();
             if (snapshot.empty) {
-                res.status(404).send('password is not correct');
+                res.status(404).send("password is not correct");
             }
             else {
                 // console.log(x.docs[0].data().career)
                 const userdoc = snapshot.docs[0].data();
                 newUser.career = userdoc.career;
                 newUser.age = userdoc.age;
+                newUser.email = userdoc.email;
                 newUser.occupation = userdoc.occupation;
                 newUser.fullName = userdoc.fullName;
                 newUser.dateOfBirth = userdoc.dateOfBirth;
                 newUser.hobby = userdoc.hobby;
+                newUser.isFirstLogin = userdoc.isFirstLogin;
+                newUser.gender = userdoc.gender;
+                newUser.dateOfBirth = userdoc.dateOfBirth;
                 res.status(200).send({
-                    "isError": false,
-                    "message": "success",
+                    isError: false,
+                    message: "success",
                     data: {
-                        user: newUser
-                    }
+                        id: snapshot.docs[0].id,
+                        user: newUser,
+                    },
                 });
             }
         }
     }
     catch (error) {
-        res.status(500).send('Error getting user');
+        res.status(500).send("Error getting user");
     }
 });
 const getmatch = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -376,7 +386,11 @@ const getmatch = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     // const likeRef = await database.collection("like2");
     // const userRef = database.collection("user");
     try {
-        const likeRef = yield firebase_service_1.database.collection("like2").where("message_id", "!=", null).where("user_id_like", "==", userID).get();
+        const likeRef = yield firebase_service_1.database
+            .collection("like2")
+            .where("message_id", "!=", null)
+            .where("user_id_like", "==", userID)
+            .get();
         // console.log(likeSnap.docs[0].data())
         if (likeRef.empty) {
             res.status(404).send("none match !!");
@@ -386,16 +400,18 @@ const getmatch = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 firebase_service_1.database.collection("user").get(),
                 firebase_service_1.database.collection("image").get(),
             ]);
-            const likelocal = likeRef.docs.map(doc => doc.data());
-            const userlocal = useref.docs.map((doc) => {
+            const likelocal = likeRef.docs.map((doc) => doc.data());
+            const userlocal = useref.docs
+                .map((doc) => {
                 const u = {};
                 u.id = doc.id;
                 u.user = doc.data();
                 return u;
-            }).filter((doc) => (likelocal.map(x => x.user_id_liked).includes(doc.id)));
+            })
+                .filter((doc) => likelocal.map((x) => x.user_id_liked).includes(doc.id));
             console.log(userlocal);
             //.filter((x)=>{
-            //   x.id = 
+            //   x.id =
             // })
             // console.log(userlocal)
             const imagelocal = imageRef.docs.map((doc) => {
@@ -408,22 +424,24 @@ const getmatch = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             const matchlist = userlocal.map((doc) => {
                 const m = {};
                 m.user = doc.user;
-                const temp1 = imagelocal.filter((x) => { return x.image.userID == doc.id; });
-                const temp = temp1.map((x) => (x.image.url));
+                const temp1 = imagelocal.filter((x) => {
+                    return x.image.userID == doc.id;
+                });
+                const temp = temp1.map((x) => x.image.url);
                 m.urlimage = temp[0];
                 return m;
             });
             res.status(200).send({
-                "isError": false,
-                "message": "success",
+                isError: false,
+                message: "success",
                 data: {
-                    matchlist: matchlist
-                }
+                    matchlist: matchlist,
+                },
             });
         }
     }
     catch (error) {
-        res.status(500).send('Error getting matclist');
+        res.status(500).send("Error getting matclist");
     }
 });
 const getConver = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -433,7 +451,11 @@ const getConver = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     // const likeRef = await database.collection("like2");
     // const userRef = database.collection("user");
     try {
-        const likeRef = yield firebase_service_1.database.collection("like2").where("message_id", "!=", null).where("user_id_like", "==", userID).get();
+        const likeRef = yield firebase_service_1.database
+            .collection("like2")
+            .where("message_id", "!=", null)
+            .where("user_id_like", "==", userID)
+            .get();
         // console.log(likeSnap.docs[0].data())
         if (likeRef.empty) {
             res.status(404).send("none match !!");
@@ -443,16 +465,18 @@ const getConver = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 firebase_service_1.database.collection("user").get(),
                 firebase_service_1.database.collection("image").get(),
             ]);
-            const likelocal = likeRef.docs.map(doc => doc.data());
-            const userlocal = useref.docs.map((doc) => {
+            const likelocal = likeRef.docs.map((doc) => doc.data());
+            const userlocal = useref.docs
+                .map((doc) => {
                 const u = {};
                 u.id = doc.id;
                 u.user = doc.data();
                 return u;
-            }).filter((doc) => (likelocal.map(x => x.user_id_liked).includes(doc.id)));
+            })
+                .filter((doc) => likelocal.map((x) => x.user_id_liked).includes(doc.id));
             console.log(userlocal);
             //.filter((x)=>{
-            //   x.id = 
+            //   x.id =
             // })
             // console.log(userlocal)
             const imagelocal = imageRef.docs.map((doc) => {
@@ -465,27 +489,31 @@ const getConver = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             const convermatch = userlocal.map((doc) => {
                 const m = {};
                 m.user = doc.user;
-                const temp1 = imagelocal.filter((x) => { return x.image.userID == doc.id; });
-                const temp = temp1.map((x) => (x.image.url));
+                const temp1 = imagelocal.filter((x) => {
+                    return x.image.userID == doc.id;
+                });
+                const temp = temp1.map((x) => x.image.url);
                 m.urlimage = temp[0];
                 return m;
             });
             res.status(200).send({
-                "isError": false,
-                "message": "success",
+                isError: false,
+                message: "success",
                 data: {
-                    converstation: convermatch
-                }
+                    converstation: convermatch,
+                },
             });
         }
     }
     catch (error) {
-        res.status(500).send('Error getting matclist');
+        res.status(500).send("Error getting matclist");
     }
 });
 exports.default = {
     create,
     update,
+    like,
+    sendMessage,
     register,
     getDiscorverUser,
     login,
