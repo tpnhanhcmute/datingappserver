@@ -8,15 +8,14 @@ router.post("/create", userController.create);
 
 router.post("/update", userController.update);
 
-router.post("/users", userController.create);
+router.post("/like", userController.like);
+
+router.post("/chat", userController.sendMessage);
 
 router.post("/register", userController.register);
 
 router.post("/discorver", userController.getDiscorverUser);
 
 router.post("/login", userController.login);
-
-router.post("/getmatch", userController.getmatch);
-// router.post("/match",controller.match);
 
 export = router;
