@@ -1,3 +1,4 @@
+
 import { Request, Response, query } from "express";
 import {
   admin,
@@ -544,14 +545,15 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
         const temp = temp1.map((x) => x.image.url);
         m.urlimage = temp[0];
         return m;
-      });
-
+      })
+      
       res.status(200).send({
-        isError: false,
-        message: "success",
-        data: {
-          converstation: convermatch,
-        },
+        "isError":false,
+        "message":"success",
+        data:{
+          match: matchlist.map(x=>x.user),
+          image: matchlist.map(x=>x.urlimage)
+        }
       });
     }
   } catch (error) {
@@ -565,6 +567,8 @@ export default {
   chat,
   register,
   getDiscorverUser,
+  match,
   login,
   getmatch,
+  
 };
