@@ -26,7 +26,7 @@ import { log } from "console";
 const create = async (req: Request, res: Response): Promise<void> => {
   const {
     fullName,
-    listHobby,
+    hobby,
     dateOfBirth,
     gender,
     email,
@@ -35,12 +35,12 @@ const create = async (req: Request, res: Response): Promise<void> => {
     occupation,
     career,
   } = req.body;
-
-  const userRef = database.collection("user");
-  userRef
-    .add({
+  try {
+    const userRef = database.collection("user");
+    const newUser = new user();
+    userRef.add({
       fullName,
-      listHobby,
+      hobby,
       dateOfBirth,
       gender,
       email,
@@ -48,14 +48,28 @@ const create = async (req: Request, res: Response): Promise<void> => {
       age,
       occupation,
       career,
-    })
-    .then((userRef) => {
-      res.status(200).json({ userRef });
-    })
-
-    .catch((error) => {
-      res.status(400).json({ error });
     });
+
+    newUser.fullName = fullName;
+    newUser.hobby = hobby;
+    newUser.dateOfBirth = dateOfBirth;
+    newUser.gender = gender;
+    newUser.email = email;
+    newUser.phoneNumber = phoneNumber;
+    newUser.age = age;
+    newUser.occupation = occupation;
+    newUser.career = career;
+
+    res.status(200).json({
+      isError: false,
+      message: "create success",
+      data: {
+        newUser: newUser,
+      },
+    });
+  } catch (error) {
+    res.status(400).json({ error });
+  }
 };
 
 const editProfile = async (req: Request, res: Response): Promise<void> => {
@@ -87,7 +101,10 @@ const editProfile = async (req: Request, res: Response): Promise<void> => {
       career,
     })
     .then((userRef) => {
-      res.status(200).json({ message: "Updated Success" });
+      res.status(200).json({
+        isError: false,
+        message: "Updated Success",
+      });
     })
 
     .catch((error) => {
@@ -164,23 +181,14 @@ const like = async (req: Request, res: Response): Promise<void> => {
       const newMessageRef = realtimedb.ref("message").push(); // Tạo một DocumentReference mới
       const newMessageId = newMessageRef.key; // Lấy ID của document vừa tạo
 
-      const sender1Content = {
-        senderID: userID,
-        content: "create content success",
-        date,
-      };
-      const sender2Content = {
-        senderID: otherUserID,
-        content: "create content success",
-        date,
-      };
       newMessageRef.set({
-        listContent: [sender1Content, sender2Content],
+        match: `match on ${date}`,
       });
 
       await Promise.all([updateMessageID(userID, otherUserID, newMessageId)]);
 
       res.status(200).json({
+        isError: false,
         message: "It's a match!",
         data: {
           otherUserID,
@@ -201,7 +209,7 @@ const sendMessage = async (req: Request, res: Response): Promise<void> => {
   const { userID, messageID, content } = req.body;
   const date = new Date().toLocaleString();
 
-  const messageRef = realtimedb.ref(`message/${messageID}/listContent`);
+  const messageRef = realtimedb.ref(`message/${messageID}`);
   const newMessageRef = messageRef.push();
 
   try {
@@ -211,6 +219,7 @@ const sendMessage = async (req: Request, res: Response): Promise<void> => {
       senderID: userID,
     });
     res.status(200).json({
+      isError: false,
       message: "Tin nhắn đã được gửi thành công",
       data: {
         messageData: {
