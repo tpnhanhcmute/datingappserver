@@ -35,7 +35,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getDistance = exports.randomNumber = exports.hashMessage = void 0;
+exports.getAge = exports.getDistance = exports.randomNumber = exports.hashMessage = void 0;
 const crypto_1 = __importDefault(require("crypto"));
 const geolib = __importStar(require("geolib"));
 const hashMessage = function hashMessage(message) {
@@ -60,3 +60,11 @@ const getDistance = function distance(point1, point2) {
     return geolib.getDistance({ latitude: point1.latitude, longitude: point1.longitude }, { latitude: point2.latitude, longitude: point2.longitude }) / 1000;
 };
 exports.getDistance = getDistance;
+const getAge = (dateOfBirth) => {
+    const birthDate = new Date(dateOfBirth);
+    const differenceInMs = Date.now() - birthDate.getTime();
+    const ageInMs = new Date(differenceInMs).getFullYear() - 1970;
+    const age = Math.floor(ageInMs);
+    return age;
+};
+exports.getAge = getAge;

@@ -565,7 +565,10 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
       });
     }
   } catch (error) {
-    res.status(500).send("Error getting matclist");
+    res.status(500).send({
+      "isError":false,
+      "message":"cannot get conver"
+    });
   }
 };
 

@@ -11,31 +11,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const firebase_service_1 = require("../services/firebase.service");
 const utils_1 = require("../../utils/utils");
-const create = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { fullName, hobby, dateOfBirth, gender, email, phoneNumber, age, occupation, career, } = req.body;
-    const userRef = firebase_service_1.database.collection("user");
-    userRef
-        .add({
-        fullName,
-        hobby,
-        dateOfBirth,
-        gender,
-        email,
-        phoneNumber,
-        age,
-        occupation,
-        career,
-    })
-        .then((userRef) => {
-        res.status(200).json({ userRef });
-    })
-        .catch((error) => {
-        res.status(400).json({ error });
-    });
-});
 const update = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const user = req.body;
     let isFirstLogin = false;
+    user.user.age = (0, utils_1.getAge)(user.user.dateOfBirth);
     const userRef = firebase_service_1.database.collection("user").doc(user.id.toString());
     userRef
         .set(user.user, { merge: true })
@@ -92,14 +71,18 @@ const like = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const date = new Date().toLocaleString();
     try {
         yield like.add({
-            likeRequest,
+            userID: likeRequest.userID,
+            isLike: likeRequest.isLike,
+            otherUserID: likeRequest.ortherUserID,
+            messageID: "",
         });
         // Tạo query để kiểm tra tương thích
         const matchQuery = yield like
             .where("userID", "==", likeRequest.ortherUserID)
             .where("otherUserID", "==", likeRequest.userID)
-            .where("isLike", "==", "true")
+            .where("isLike", "==", true)
             .get();
+        console.log(matchQuery.size);
         // Kiểm tra và trả về kết quả
         if (matchQuery.size > 0) {
             const newMessageRef = firebase_service_1.realtimedb.ref("message").push(); // Tạo một DocumentReference mới
@@ -108,7 +91,7 @@ const like = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 match: `match on ${date}`,
             });
             yield Promise.all([
-                updateMessageID(likeRequest.userID.toString(), likeRequest.ortherUserID.toString(), newMessageId),
+                updateMessageID(likeRequest.userID, likeRequest.ortherUserID, newMessageId),
             ]);
             res.status(200).json({
                 message: "It's a match!",
@@ -128,24 +111,24 @@ const like = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         res.status(400).json({ error });
     }
 });
-const sendMessage = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { userID, messageID, content } = req.body;
+const chat = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const sendMessage = req.body;
     const date = new Date().toLocaleString();
-    const messageRef = firebase_service_1.realtimedb.ref(`message/${messageID}/listContent`);
+    const messageRef = firebase_service_1.realtimedb.ref(`message/${sendMessage.messageID}`);
     const newMessageRef = messageRef.push();
     try {
         yield newMessageRef.set({
-            content,
+            content: sendMessage.content,
             date,
-            senderID: userID,
+            senderID: sendMessage.userID,
         });
         res.status(200).json({
             message: "Tin nhắn đã được gửi thành công",
             data: {
                 messageData: {
-                    messageID,
-                    senderID: userID,
-                    content,
+                    messageID: sendMessage.messageID,
+                    senderID: sendMessage.userID,
+                    content: sendMessage.content,
                     date,
                 },
             },
@@ -376,7 +359,10 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         }
     }
     catch (error) {
-        res.status(500).send("Error getting user");
+        res.status(500).send({
+            isError: true,
+            message: "can not log in !!"
+        });
     }
 });
 const getmatch = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -435,13 +421,17 @@ const getmatch = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 isError: false,
                 message: "success",
                 data: {
-                    matchlist: matchlist,
+                    match: matchlist.map(x => x.user),
+                    image: matchlist.map(x => x.urlimage)
                 },
             });
         }
     }
     catch (error) {
-        res.status(500).send("Error getting matclist");
+        res.status(500).send({
+            isError: true,
+            message: "can not log in !!"
+        });
     }
 });
 const getConver = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -497,11 +487,9 @@ const getConver = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 return m;
             });
             res.status(200).send({
-                isError: false,
-                message: "success",
-                data: {
-                    converstation: convermatch,
-                },
+                "isError": false,
+                "message": "success",
+                data: {}
             });
         }
     }
@@ -510,10 +498,9 @@ const getConver = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.default = {
-    create,
     update,
     like,
-    sendMessage,
+    chat,
     register,
     getDiscorverUser,
     login,

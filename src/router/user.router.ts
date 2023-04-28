@@ -16,4 +16,5 @@ router.post("/discorver", userController.getDiscorverUser);
 
 router.post("/login", userController.login);
 
+router.post("/getmatch", userController.getmatch);
 export = router;
