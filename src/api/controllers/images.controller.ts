@@ -55,7 +55,7 @@ const getImage = async (req:Request, res:Response):Promise<void>=>{
         throw "Use need to upload image to app"
       }
     }catch(error){
-      res.status(400).send({
+      res.status(500).send({
         isError:true,
         message:error,
       })
