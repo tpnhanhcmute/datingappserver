@@ -26,16 +26,40 @@ const uploadImage = async (req: Request, res: Response): Promise<void> => {
         message:"Upload successfull",
         data:{}
       })
-
-
-
   }catch(error){
     res.status(400).send({
       isError:true,
       message:"Upload falure"
     })
   }
-
 };
 
-export default { uploadImage };
+const getImage = async (req:Request, res:Response):Promise<void>=>{
+    try{
+      const userID = req.body as String
+      const imageRef = database.collection("image").where("userID","==", userID).limit(1);
+      const docs = (await imageRef.get()).docs;
+      if(docs.length> 0)
+      {
+        const image = docs.shift().data() as Image
+        const imageUrl = image.url
+        res.status(200).send({
+          isError:false,
+          message:"Get image url successfull",
+          data:{
+            url: imageUrl
+          }
+        })
+      }else{
+        throw "Use need to upload image to app"
+      }
+    }catch(error){
+      res.status(400).send({
+        isError:true,
+        message:error,
+      })
+    }
+}
+
+
+export default { uploadImage,getImage };
