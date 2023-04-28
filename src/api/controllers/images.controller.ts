@@ -30,6 +30,7 @@ const uploadImage = async (req: Request, res: Response): Promise<void> => {
     res.status(400).send({
       isError:true,
       message:"Upload falure"
+      
     })
   }
 };
@@ -60,6 +61,5 @@ const getImage = async (req:Request, res:Response):Promise<void>=>{
       })
     }
 }
-
 
 export default { uploadImage,getImage };
