@@ -35,20 +35,24 @@ const uploadImage = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-const getImage = async (req:Request, res:Response):Promise<void>=>{
+const getImages = async (req:Request, res:Response):Promise<void>=>{
     try{
       const userID = req.body as String
-      const imageRef = database.collection("image").where("userID","==", userID).limit(1);
-      const docs = (await imageRef.get()).docs;
-      if(docs.length> 0)
+      const imageRef = await (database.collection("image")).get()
+      
+      if(!imageRef.empty)
       {
-        const image = docs.shift().data() as Image
-        const imageUrl = image.url
+        const listImage = [] as Array<String>
+
+        imageRef.docs.forEach(x=>{
+          const image = x.data() as Image
+          listImage.push(image.url)
+        })
         res.status(200).send({
           isError:false,
           message:"Get image url successfull",
           data:{
-            url: imageUrl
+            listImage: listImage
           }
         })
       }else{
@@ -62,4 +66,4 @@ const getImage = async (req:Request, res:Response):Promise<void>=>{
     }
 }
 
-export default { uploadImage,getImage };
+export default { uploadImage,getImages };
