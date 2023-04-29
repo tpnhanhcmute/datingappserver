@@ -4,6 +4,8 @@ import userController from "../api/controllers/user.controller";
 
 const router = express.Router();
 
+router.get("getUsers", userController.getUser);
+
 router.post("/update", userController.update);
 
 router.post("/like", userController.like);

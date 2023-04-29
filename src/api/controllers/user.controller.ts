@@ -50,6 +50,23 @@ const update = async (req: Request, res: Response): Promise<void> => {
     });
 };
 
+const getUser = async (req: Request, res: Response): Promise<void> => {
+  const usersRef = database.collection("user");
+  const snapshot = await usersRef.get();
+  const users = [];
+  try {
+    snapshot.forEach((doc) => {
+      users.push({
+        id: doc.id,
+        ...doc.data(),
+      });
+    });
+    res.status(200).json({ users });
+  } catch (error) {
+    res.status(404).json({ error });
+  }
+};
+
 const updateMessageID = async (
   userID: String,
   otherUserID: String,
@@ -114,8 +131,6 @@ const like = async (req: Request, res: Response): Promise<void> => {
       .where("isLike", "==", true)
       .get();
 
-    console.log(matchQuery.size);
-
     // Kiểm tra và trả về kết quả
     if (matchQuery.size > 0) {
       const newMessageRef = realtimedb.ref("message").push(); // Tạo một DocumentReference mới
@@ -134,6 +149,7 @@ const like = async (req: Request, res: Response): Promise<void> => {
       ]);
 
       res.status(200).json({
+        isError: true,
         message: "It's a match!",
         data: {
           otherUserID: likeRequest.ortherUserID,
@@ -143,7 +159,10 @@ const like = async (req: Request, res: Response): Promise<void> => {
         },
       });
     } else {
-      res.status(200).json({ message: "Like Success" });
+      res.status(200).json({
+        isError: true,
+        message: "Like Success",
+      });
     }
   } catch (error) {
     res.status(400).json({ error });
@@ -295,11 +314,7 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
       database.collection("user").where("isAuth", "==", true).get(),
       database.collection("location").get(),
       database.collection("image").get(),
-      database
-        .collection("like")
-        .where("userIDLike", "==", userID)
-        .where("isLike", "==", true)
-        .get(),
+      database.collection("like").where("userIDLike", "==", userID).get(),
     ]);
 
     let likeDocs = likeCollection.docs.map(
@@ -561,6 +576,7 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
 
 export default {
   update,
+  getUser,
   like,
   chat,
   register,
