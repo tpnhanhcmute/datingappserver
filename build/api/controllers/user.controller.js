@@ -11,28 +11,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const firebase_service_1 = require("../services/firebase.service");
 const utils_1 = require("../../utils/utils");
-const create = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { fullName, hobby, dateOfBirth, gender, email, phoneNumber, age, occupation, career, } = req.body;
-    const userRef = firebase_service_1.database.collection("user");
-    userRef
-        .add({
-        fullName,
-        hobby,
-        dateOfBirth,
-        gender,
-        email,
-        phoneNumber,
-        age,
-        occupation,
-        career,
-    })
-        .then((userRef) => {
-        res.status(200).json({ userRef });
-    })
-        .catch((error) => {
-        res.status(400).json({ error });
-    });
-});
 const update = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const user = req.body;
     let isFirstLogin = false;
@@ -53,6 +31,20 @@ const update = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             data: {},
         });
     });
+});
+const getUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const usersRef = firebase_service_1.database.collection("user");
+    const snapshot = yield usersRef.get();
+    const users = [];
+    try {
+        snapshot.forEach((doc) => {
+            users.push(Object.assign({ id: doc.id }, doc.data()));
+        });
+        res.status(200).json({ users });
+    }
+    catch (error) {
+        res.status(404).json({ error });
+    }
 });
 const updateMessageID = (userID, otherUserID, messageId) => __awaiter(void 0, void 0, void 0, function* () {
     const like = firebase_service_1.database.collection("like");
@@ -92,13 +84,16 @@ const like = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const date = new Date().toLocaleString();
     try {
         yield like.add({
-            likeRequest,
+            userID: likeRequest.userID,
+            isLike: likeRequest.isLike,
+            otherUserID: likeRequest.ortherUserID,
+            messageID: "",
         });
         // Tạo query để kiểm tra tương thích
         const matchQuery = yield like
             .where("userID", "==", likeRequest.ortherUserID)
             .where("otherUserID", "==", likeRequest.userID)
-            .where("isLike", "==", "true")
+            .where("isLike", "==", true)
             .get();
         // Kiểm tra và trả về kết quả
         if (matchQuery.size > 0) {
@@ -108,9 +103,10 @@ const like = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 match: `match on ${date}`,
             });
             yield Promise.all([
-                updateMessageID(likeRequest.userID.toString(), likeRequest.ortherUserID.toString(), newMessageId),
+                updateMessageID(likeRequest.userID, likeRequest.ortherUserID, newMessageId),
             ]);
             res.status(200).json({
+                isError: true,
                 message: "It's a match!",
                 data: {
                     otherUserID: likeRequest.ortherUserID,
@@ -121,31 +117,34 @@ const like = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             });
         }
         else {
-            res.status(200).json({ message: "Like Success" });
+            res.status(200).json({
+                isError: true,
+                message: "Like Success",
+            });
         }
     }
     catch (error) {
         res.status(400).json({ error });
     }
 });
-const sendMessage = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { userID, messageID, content } = req.body;
+const chat = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const sendMessage = req.body;
     const date = new Date().toLocaleString();
-    const messageRef = firebase_service_1.realtimedb.ref(`message/${messageID}/listContent`);
+    const messageRef = firebase_service_1.realtimedb.ref(`message/${sendMessage.messageID}`);
     const newMessageRef = messageRef.push();
     try {
         yield newMessageRef.set({
-            content,
+            content: sendMessage.content,
             date,
-            senderID: userID,
+            senderID: sendMessage.userID,
         });
         res.status(200).json({
             message: "Tin nhắn đã được gửi thành công",
             data: {
                 messageData: {
-                    messageID,
-                    senderID: userID,
-                    content,
+                    messageID: sendMessage.messageID,
+                    senderID: sendMessage.userID,
+                    content: sendMessage.content,
                     date,
                 },
             },
@@ -265,11 +264,7 @@ const getDiscorverUser = (req, res) => __awaiter(void 0, void 0, void 0, functio
             firebase_service_1.database.collection("user").where("isAuth", "==", true).get(),
             firebase_service_1.database.collection("location").get(),
             firebase_service_1.database.collection("image").get(),
-            firebase_service_1.database
-                .collection("like")
-                .where("userIDLike", "==", userID)
-                .where("isLike", "==", true)
-                .get(),
+            firebase_service_1.database.collection("like").where("userIDLike", "==", userID).get(),
         ]);
         let likeDocs = likeCollection.docs.map((like) => like.data().userIDLiked);
         let userDocs = userCollection.docs
@@ -510,10 +505,10 @@ const getConver = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.default = {
-    create,
     update,
+    getUser,
     like,
-    sendMessage,
+    chat,
     register,
     getDiscorverUser,
     login,
