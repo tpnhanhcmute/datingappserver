@@ -167,19 +167,24 @@ const chat = async (req: Request, res: Response): Promise<void> => {
       senderID: sendMessage.userID,
     });
     res.status(200).json({
+      isError: false,
       message: "Tin nhắn đã được gửi thành công",
       data: {
         messageData: {
           messageID: sendMessage.messageID,
           senderID: sendMessage.userID,
           content: sendMessage.content,
-          date,
+          date: date
         },
       },
     });
   } catch (error) {
     console.error("Lỗi khi gửi tin nhắn:", error);
-    res.status(500).send("Có lỗi xảy ra khi gửi tin nhắn");
+    res.status(500).send({
+      isError:true,
+      message:"Có lỗi xảy ra khi gửi tin nhắn",
+      data:{}
+    });
   }
 };
 
