@@ -4,7 +4,7 @@ import userController from "../api/controllers/user.controller";
 
 const router = express.Router();
 
-router.get("getUsers", userController.getUser);
+router.get("/getall", userController.getAllUser);
 
 router.post("/update", userController.update);
 

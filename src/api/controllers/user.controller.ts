@@ -1,4 +1,3 @@
-
 import { Request, Response, query } from "express";
 import {
   admin,
@@ -7,7 +6,12 @@ import {
   sendEmail,
 } from "../services/firebase.service";
 import { User } from "../model/user.model";
-import { hashMessage, randomNumber, getDistance, getAge } from "../../utils/utils";
+import {
+  hashMessage,
+  randomNumber,
+  getDistance,
+  getAge,
+} from "../../utils/utils";
 import {
   collection,
   query as firestoreQuery,
@@ -29,10 +33,9 @@ import { log } from "console";
 import { sendMessage } from "../dto/sendMessage.dto";
 
 const update = async (req: Request, res: Response): Promise<void> => {
-  
   const user = req.body as UserID;
   let isFirstLogin = false;
-  user.user.age =getAge(user.user.dateOfBirth)
+  user.user.age = getAge(user.user.dateOfBirth);
   const userRef = database.collection("user").doc(user.id.toString());
   userRef
     .set(user.user, { merge: true })
@@ -53,17 +56,29 @@ const update = async (req: Request, res: Response): Promise<void> => {
     });
 };
 
-const getUser = async (req: Request, res: Response): Promise<void> => {
-  const usersRef = database.collection("user");
-  const snapshot = await usersRef.get();
-  const users = [];
+const getAllUser = async (req: Request, res: Response): Promise<void> => {
   try {
-    snapshot.forEach((doc) => {
-      users.push({
+    const usersRef = database.collection("user");
+    const usersSnapshot = await usersRef.get();
+    const users = [];
+
+    const imagesRef = database.collection("image");
+    const imagesSnapshot = await imagesRef.get();
+    const images = {};
+
+    imagesSnapshot.forEach((doc) => {
+      images[doc.data().userID] = doc.data().url;
+    });
+
+    usersSnapshot.forEach((doc) => {
+      const user = {
         id: doc.id,
         ...doc.data(),
-      });
+        url: images[doc.id] || null,
+      };
+      users.push(user);
     });
+
     res.status(200).json({ users });
   } catch (error) {
     res.status(404).json({ error });
@@ -168,6 +183,7 @@ const like = async (req: Request, res: Response): Promise<void> => {
       });
     }
   } catch (error) {
+    console.log("lỗi rồi kìa !!!" + error);
     res.status(400).json({ error });
   }
 };
@@ -193,16 +209,16 @@ const chat = async (req: Request, res: Response): Promise<void> => {
           messageID: sendMessage.messageID,
           senderID: sendMessage.userID,
           content: sendMessage.content,
-          date: date
+          date: date,
         },
       },
     });
   } catch (error) {
     console.error("Lỗi khi gửi tin nhắn:", error);
     res.status(500).send({
-      isError:true,
-      message:"Có lỗi xảy ra khi gửi tin nhắn",
-      data:{}
+      isError: true,
+      message: "Có lỗi xảy ra khi gửi tin nhắn",
+      data: {},
     });
   }
 };
@@ -444,7 +460,7 @@ const login = async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     res.status(500).send({
       isError: true,
-      message:"can not log in !!"
+      message: "can not log in !!",
     });
   }
 };
@@ -508,16 +524,16 @@ const getmatch = async (req: Request, res: Response): Promise<void> => {
         isError: false,
         message: "success",
         data: {
-          match: matchlist.map(x=>x.user),
-          image: matchlist.map(x=>x.urlimage)
+          match: matchlist.map((x) => x.user),
+          image: matchlist.map((x) => x.urlimage),
         },
       });
     }
   } catch (error) {
     res.status(500).send({
       isError: true,
-      message:"can not log in !!"
-    })
+      message: "can not log in !!",
+    });
   }
 };
 
@@ -574,33 +590,29 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
         const temp = temp1.map((x) => x.image.url);
         m.urlimage = temp[0];
         return m;
-      })
-      
+      });
+
       res.status(200).send({
-        "isError":false,
-        "message":"success",
-        data:{
-          
-        }
+        isError: false,
+        message: "success",
+        data: {},
       });
     }
   } catch (error) {
     res.status(500).send({
-      "isError":false,
-      "message":"cannot get conver"
+      isError: false,
+      message: "cannot get conver",
     });
   }
 };
 
 export default {
   update,
-  getUser,
+  getAllUser,
   like,
   chat,
   register,
   getDiscorverUser,
-  
   login,
   getmatch,
-  
 };
