@@ -1,3 +1,4 @@
+
 import { Request, Response, query } from "express";
 import {
   admin,
@@ -6,7 +7,7 @@ import {
   sendEmail,
 } from "../services/firebase.service";
 import { User } from "../model/user.model";
-import { hashMessage, randomNumber, getDistance } from "../../utils/utils";
+import { hashMessage, randomNumber, getDistance, getAge } from "../../utils/utils";
 import {
   collection,
   query as firestoreQuery,
@@ -28,8 +29,10 @@ import { log } from "console";
 import { sendMessage } from "../dto/sendMessage.dto";
 
 const update = async (req: Request, res: Response): Promise<void> => {
+  
   const user = req.body as UserID;
   let isFirstLogin = false;
+  user.user.age =getAge(user.user.dateOfBirth)
   const userRef = database.collection("user").doc(user.id.toString());
   userRef
     .set(user.user, { merge: true })
@@ -183,19 +186,24 @@ const chat = async (req: Request, res: Response): Promise<void> => {
       senderID: sendMessage.userID,
     });
     res.status(200).json({
+      isError: false,
       message: "Tin nhắn đã được gửi thành công",
       data: {
         messageData: {
           messageID: sendMessage.messageID,
           senderID: sendMessage.userID,
           content: sendMessage.content,
-          date,
+          date: date
         },
       },
     });
   } catch (error) {
     console.error("Lỗi khi gửi tin nhắn:", error);
-    res.status(500).send("Có lỗi xảy ra khi gửi tin nhắn");
+    res.status(500).send({
+      isError:true,
+      message:"Có lỗi xảy ra khi gửi tin nhắn",
+      data:{}
+    });
   }
 };
 
@@ -434,7 +442,10 @@ const login = async (req: Request, res: Response): Promise<void> => {
       }
     }
   } catch (error) {
-    res.status(500).send("Error getting user");
+    res.status(500).send({
+      isError: true,
+      message:"can not log in !!"
+    });
   }
 };
 
@@ -497,12 +508,16 @@ const getmatch = async (req: Request, res: Response): Promise<void> => {
         isError: false,
         message: "success",
         data: {
-          matchlist: matchlist,
+          match: matchlist.map(x=>x.user),
+          image: matchlist.map(x=>x.urlimage)
         },
       });
     }
   } catch (error) {
-    res.status(500).send("Error getting matclist");
+    res.status(500).send({
+      isError: true,
+      message:"can not log in !!"
+    })
   }
 };
 
@@ -559,18 +574,21 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
         const temp = temp1.map((x) => x.image.url);
         m.urlimage = temp[0];
         return m;
-      });
-
+      })
+      
       res.status(200).send({
-        isError: false,
-        message: "success",
-        data: {
-          converstation: convermatch,
-        },
+        "isError":false,
+        "message":"success",
+        data:{
+          
+        }
       });
     }
   } catch (error) {
-    res.status(500).send("Error getting matclist");
+    res.status(500).send({
+      "isError":false,
+      "message":"cannot get conver"
+    });
   }
 };
 
@@ -581,6 +599,8 @@ export default {
   chat,
   register,
   getDiscorverUser,
+  
   login,
   getmatch,
+  
 };

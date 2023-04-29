@@ -14,6 +14,7 @@ const utils_1 = require("../../utils/utils");
 const update = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const user = req.body;
     let isFirstLogin = false;
+    user.user.age = (0, utils_1.getAge)(user.user.dateOfBirth);
     const userRef = firebase_service_1.database.collection("user").doc(user.id.toString());
     userRef
         .set(user.user, { merge: true })
@@ -95,6 +96,7 @@ const like = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             .where("otherUserID", "==", likeRequest.userID)
             .where("isLike", "==", true)
             .get();
+        console.log(matchQuery.size);
         // Kiểm tra và trả về kết quả
         if (matchQuery.size > 0) {
             const newMessageRef = firebase_service_1.realtimedb.ref("message").push(); // Tạo một DocumentReference mới
@@ -371,7 +373,10 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         }
     }
     catch (error) {
-        res.status(500).send("Error getting user");
+        res.status(500).send({
+            isError: true,
+            message: "can not log in !!"
+        });
     }
 });
 const getmatch = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -430,13 +435,17 @@ const getmatch = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 isError: false,
                 message: "success",
                 data: {
-                    matchlist: matchlist,
+                    match: matchlist.map(x => x.user),
+                    image: matchlist.map(x => x.urlimage)
                 },
             });
         }
     }
     catch (error) {
-        res.status(500).send("Error getting matclist");
+        res.status(500).send({
+            isError: true,
+            message: "can not log in !!"
+        });
     }
 });
 const getConver = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -492,11 +501,9 @@ const getConver = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 return m;
             });
             res.status(200).send({
-                isError: false,
-                message: "success",
-                data: {
-                    converstation: convermatch,
-                },
+                "isError": false,
+                "message": "success",
+                data: {}
             });
         }
     }

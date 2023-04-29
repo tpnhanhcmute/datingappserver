@@ -1,15 +1,15 @@
 export interface User {
 
-    phoneNumber: String
-    email: String
-    password: String
-    fullName: String
-    career:String
-    dateOfBirth: String
+    phoneNumber: string
+    email: string
+    password: string
+    fullName: string
+    career:string
+    dateOfBirth: string
     age:Number
-    hobby:Array<String>
-    gender:String
+    hobby:Array<string>
+    gender:string
     isAuth:Boolean 
     isFirstLogin:Boolean 
-    occupation:String|null
+    occupation:string|null
   }
