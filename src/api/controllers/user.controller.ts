@@ -366,6 +366,8 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
         distance = getDistance(p, point2) as number;
       }
       let dcUser = {} as DiscorverUser;
+      
+      dcUser.userID = userDoc.id
       dcUser.age = userDoc.user.age;
       dcUser.fullName = userDoc.user.fullName;
       (dcUser.hobby = userDoc.user.hobby),
