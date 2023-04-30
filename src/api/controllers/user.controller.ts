@@ -385,17 +385,23 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
         point2.longitude = arrayLocation[0].location.lng;
         distance = getDistance(p, point2) as number;
       }
-      let dcUser = {} as DiscorverUser;
+      let dcUser = {} as DiscorverUser
+
+      dcUser.userID = userDoc.id;
       dcUser.age = userDoc.user.age;
       dcUser.fullName = userDoc.user.fullName;
+
       (dcUser.hobby = userDoc.user.hobby),
         (dcUser.occupation = userDoc.user.occupation);
       dcUser.distance = distance;
+      dcUser.locationName = arrayLocation.shift().location.name
+      
       dcUser.imageUrl = imageDoc
-        .filter((x) => {
-          x.image.userID == userRef.id;
-        })
-        .map((x) => x.image.url);
+        .filter((x) => 
+          x.image.userID == userDoc.id
+        )
+        .map(x => { return x.image.url});
+
       return dcUser;
     });
 
@@ -403,7 +409,7 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
       isError: false,
       message: "Danh sách user",
       data: {
-        discorverUser: userDistance.filter((x) => x.distance < distance),
+        discorverUser: userDistance.filter((x) => x.distance < distance).slice(0),
       },
     });
   } catch (error) {
