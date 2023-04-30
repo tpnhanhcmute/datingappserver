@@ -106,22 +106,22 @@ const like = async (req: Request, res: Response): Promise<void> => {
   try {
     await like.add({
       userID: likeRequest.userID,
-      isLike: likeRequest.isLike,
-      otherUserID: likeRequest.ortherUserID,
+      isLike: likeRequest.isLike as boolean,
+      otherUserID: likeRequest.otherUserID,
       messageID: "",
     });
 
     // Tạo query để kiểm tra tương thích
     const matchQuery = await like
-      .where("userID", "==", likeRequest.ortherUserID)
-      .where("otherUserID", "==", likeRequest.userID)
-      .where("isLike", "==", true)
+      .where("userID", "==", likeRequest.otherUserID)
+      .where("otherUserID","==",likeRequest.userID)
+      .where("isLike","==",true)
       .get();
 
-    console.log(matchQuery.size);
+    //console.log(matchQuery.docs);
 
     // Kiểm tra và trả về kết quả
-    if (matchQuery.size > 0) {
+    if (matchQuery.docs.length > 0) {
       const newMessageRef = realtimedb.ref("message").push(); // Tạo một DocumentReference mới
       const newMessageId = newMessageRef.key; // Lấy ID của document vừa tạo
 
@@ -132,18 +132,18 @@ const like = async (req: Request, res: Response): Promise<void> => {
       await Promise.all([
         updateMessageID(
           likeRequest.userID,
-          likeRequest.ortherUserID,
+          likeRequest.otherUserID,
           newMessageId
         ),
       ]);
       
-    const fullName = await getFullName(likeRequest.ortherUserID)
+    const fullName = await getFullName(likeRequest.otherUserID)
       res.status(200).send({
         isError: false,
         message: "It's a match!",
         data: {
           isMatch:true,
-          otherUserID: likeRequest.ortherUserID,
+          otherUserID: likeRequest.otherUserID,
           imageUrl: "chua lam",
           messageID: newMessageId,
           fullName: fullName
