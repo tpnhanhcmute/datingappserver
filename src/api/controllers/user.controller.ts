@@ -566,7 +566,7 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
           u.user = doc.data() as conver;
           return u;
         })
-        .filter((doc)=>(likelocal.map(x =>x.user_id_liked)).includes(doc.id))
+        .filter((doc)=>(likelocal.map(x =>x.otherUserID)).includes(doc.id))
       const imagelocal: Array<ImageID> = imageRef.docs.map((doc) => {
         const i = {} as ImageID;
         i.id = doc.id;
