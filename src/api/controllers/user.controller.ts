@@ -429,7 +429,10 @@ const login = async (req: Request, res: Response): Promise<void> => {
     const snapshots = await userRef.where("email", "==", email).get();
 
     if (snapshots.empty) {
-      res.status(404).send("user is not exist !!");
+      res.status(404).send({
+        isError: true,
+        message:"user is not exist !!"
+      })
     } else {
       const passwordHash = await hashMessage(password);
       const snapshot = await userRef
@@ -473,11 +476,11 @@ const login = async (req: Request, res: Response): Promise<void> => {
 
 const getmatch = async (req: Request, res: Response): Promise<void> => {
   const { userID } = req.body;
-  const userR = await database.collection("user").doc(userID);
+  try {
   // console.log(userID)
   // const likeRef = await database.collection("like2");
   // const userRef = database.collection("user");
-  try {
+  
     const likeRef = await database
       .collection("like2")
       .where("message_id", "!=", null)
@@ -485,7 +488,10 @@ const getmatch = async (req: Request, res: Response): Promise<void> => {
       .get();
     // console.log(likeSnap.docs[0].data())
     if (likeRef.empty) {
-      res.status(404).send("none match !!");
+      res.status(404).send({
+        isError: true,
+        message:"user is not exist !!"
+      });
     } else {
       const [useref, imageRef] = await Promise.all([
         database.collection("user").get(),
@@ -557,7 +563,10 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
       .get();
     // console.log(likeSnap.docs[0].data())
     if (likeRef.empty) {
-      res.status(404).send("none match !!");
+      res.status(404).send({
+        "isError":false,
+        "message":"success",
+      });
     } else {
       const [useref, imageRef] = await Promise.all([
         database.collection("user").get(),
@@ -574,12 +583,7 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
         .filter((doc) =>
           likelocal.map((x) => x.user_id_liked).includes(doc.id)
         );
-      console.log(userlocal);
-      //.filter((x)=>{
-      //   x.id =
-      // })
-      // console.log(userlocal)
-
+      
       const imagelocal: Array<ImageID> = imageRef.docs.map((doc) => {
         const i = {} as ImageID;
         i.id = doc.id;
