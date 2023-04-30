@@ -12,12 +12,7 @@ import {
   getDistance,
   getAge,
 } from "../../utils/utils";
-import {
-  collection,
-  query as firestoreQuery,
-  where,
-  getDocs,
-} from "firebase/firestore";
+
 import { interaction } from "../model/like.model";
 import { Location } from "../model/location.model";
 import { Point } from "../model/point.model";
@@ -329,22 +324,24 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const [
+    let [
       userCollection,
       locationCollection,
       imageCollection,
       likeCollection,
     ] = await Promise.all([
-      database.collection("user").where("isAuth", "==", true).get(),
+      database.collection("user").where("isAuth", "==", true).where(admin.firestore.FieldPath.documentId(), "!=", userID).get(),
       database.collection("location").get(),
       database.collection("image").get(),
       database.collection("like").where("userIDLike", "==", userID).get(),
     ]);
 
+    
+
     let likeDocs = likeCollection.docs.map(
       (like) => (like.data() as interaction).userIDLiked
     );
-    let userDocs: Array<UserID> = userCollection.docs
+    let userDocs: Array<UserID> = userCollection.docs 
       .map((doc) => {
         let u = {} as UserID;
         u.id = doc.id;
@@ -400,7 +397,7 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
         .filter((x) => 
           x.image.userID == userDoc.id
         )
-        .map(x => { return x.image.url});
+        .map(x =>  x.image.url);
 
       return dcUser;
     });

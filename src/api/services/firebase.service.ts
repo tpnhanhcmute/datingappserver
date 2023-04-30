@@ -38,4 +38,4 @@ const sendEmail = async function senEmail( to:string,subject: string ,message:st
     }
   });
 }
-export {admin, realtimedb, database ,sendEmail} 
+export {admin, realtimedb, database ,sendEmail, firebase, } 
