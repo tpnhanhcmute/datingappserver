@@ -131,13 +131,21 @@ const like = async (req: Request, res: Response): Promise<void> => {
         match: `match on ${date}`,
       });
 
-      await Promise.all([
+      const [_, imageRef] = await Promise.all([
         updateMessageID(
           likeRequest.userID,
           likeRequest.otherUserID,
           newMessageId
-        ),
+        ),database.collection("image").where("userID","==", likeRequest.otherUserID).get()
       ]);
+    
+    const imageDoc = imageRef.docs.shift()
+    let url = "" as String
+    if(imageDoc != null){
+      url = (imageDoc.data() as Image).url
+    }
+  
+    
       
     const fullName = await getFullName(likeRequest.otherUserID)
       res.status(200).send({
@@ -146,7 +154,7 @@ const like = async (req: Request, res: Response): Promise<void> => {
         data: {
           isMatch:true,
           otherUserID: likeRequest.otherUserID,
-          imageUrl: "chua lam",
+          imageUrl:url,
           messageID: newMessageId,
           fullName: fullName
         },
