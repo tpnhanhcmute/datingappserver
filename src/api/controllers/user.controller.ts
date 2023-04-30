@@ -573,7 +573,7 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
         return i;
       });
 
-      
+
       //console.log(imagelocal)
       const converlist: Array<conver> = userlocal.map((doc) => {
         const m = {} as conver;
@@ -599,6 +599,43 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
     })
   }
 };
+const getUser = async (req:Request, res: Response):Promise<void> =>{
+  const {userID} = req.body
+  try{
+    const [userCollection, imageCollection, locationCollection]=
+   await Promise.all([database.collection("user").doc(userID).get(),
+    database.collection("image").where("userID", "==", userID).get(),
+    database.collection("location").doc(userID).get()])
+
+    const user = userCollection.data() as User
+    const location = locationCollection.data() as Location
+    const userInfo = {} as DiscorverUser
+    userInfo.userID = userCollection.id
+    userInfo.age = user.age
+    userInfo.fullName = user.fullName
+    userInfo.hobby = user.hobby,
+    userInfo.locationName = location.name
+    userInfo.occupation =user.occupation
+    userInfo.imageUrl = imageCollection.docs.map(x =>{
+      const image = x.data() as Image
+      return image.url
+    })
+    res.status(200).send({
+      isError:false,
+      message:"Thông tin người dùng",
+      data:{
+        user: userInfo
+      }
+    })
+  }
+  catch(error){
+    res.status(400).send({
+      isError:true,
+      message:error
+    })
+  }
+}
+
 
 export default {
   update,
@@ -609,5 +646,5 @@ export default {
   getConver,
   login,
   getmatch,
-  
+  getUser
 };
