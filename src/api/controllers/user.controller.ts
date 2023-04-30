@@ -470,11 +470,10 @@ const getmatch = async (req: Request, res: Response): Promise<void> => {
   // const userRef = database.collection("user");
   
     const likeRef = await database
-      .collection("like2")
-      .where("message_id", "!=", null)
-      .where("user_id_like", "==", userID)
+      .collection("like")
+      .where("messageID", "!=", null)
+      .where("userID", "==", userID)
       .get();
-    // console.log(likeSnap.docs[0].data())
     if (likeRef.empty) {
       res.status(404).send({
         isError: true,
@@ -540,9 +539,9 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
   // const userRef = database.collection("user");
   
     const likeRef = await database
-      .collection("like2")
-      .where("message_id", "!=", null)
-      .where("user_id_like", "==", userID)
+      .collection("like")
+      .where("messageID", "!=", null)
+      .where("userID", "==", userID)
       .get();
 
     const chatRef = await realtimedb.ref(`message`)
