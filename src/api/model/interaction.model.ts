@@ -1,5 +1,6 @@
 export interface Interaction{
-    user_id_like:String
-    user_id_liked: String
-    message_id:String|null
+    userID:String
+    otherUserID: String
+    isLike:boolean
+    messageID:String|null
 }

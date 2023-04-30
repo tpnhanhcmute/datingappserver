@@ -312,17 +312,17 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
       database.collection("user").where("isAuth", "==", true).where(admin.firestore.FieldPath.documentId(), "!=", userID).get(),
       database.collection("location").get(),
       database.collection("image").get(),
+
       database
         .collection("like")
-        .where("userIDLike", "==", userID)
-        .where("isLike", "==", true)
+        .where("userID", "==", userID)
         .get(),
     ]);
 
     
 
     let likeDocs = likeCollection.docs.map(
-      (like) => (like.data() as interaction).userIDLiked
+      (like) => (like.data() as Interaction).otherUserID
     );
     let userDocs: Array<UserID> = userCollection.docs 
       .map((doc) => {
@@ -336,6 +336,7 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
           user.user.age >= (minAge as Number) &&
           user.user.age <= (maxAge as Number) &&
           getGender.includes(user.user.gender) &&
+
           !likeDocs.includes(user.id)
       );
     let locationDoc: Array<LocationID> = locationCollection.docs.map((doc) => {
@@ -366,7 +367,7 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
         distance = getDistance(p, point2) as number;
       }
       let dcUser = {} as DiscorverUser;
-      
+
       dcUser.userID = userDoc.id
       dcUser.age = userDoc.user.age;
       dcUser.fullName = userDoc.user.fullName;
@@ -482,7 +483,7 @@ const getmatch = async (req: Request, res: Response): Promise<void> => {
           u.user = doc.data() as matchUser;
           return u;
         })
-        .filter((doc)=>(likelocal.map(x =>x.user_id_liked)).includes(doc.id))
+        .filter((doc)=>(likelocal.map(x =>x.otherUserID)).includes(doc.id))
       console.log(likelocal);
       //.filter((x)=>{
       //   x.id =
