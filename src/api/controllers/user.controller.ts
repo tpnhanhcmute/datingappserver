@@ -1,3 +1,4 @@
+
 import { Request, Response, query } from "express";
 import {
   admin,
@@ -5,14 +6,13 @@ import {
   realtimedb,
   sendEmail,
 } from "../services/firebase.service";
-import { User } from "../model/user.model";
+import { User } from "../model/user.model";import { hashMessage, randomNumber, getDistance, getAge } from "../../utils/utils";
 import {
-  hashMessage,
-  randomNumber,
-  getDistance,
-  getAge,
-} from "../../utils/utils";
-
+  collection,
+  query as firestoreQuery,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { interaction } from "../model/like.model";
 import { Location } from "../model/location.model";
 import { Point } from "../model/point.model";
@@ -25,11 +25,14 @@ import { Match } from "../dto/match.dto";
 import { Interaction } from "../model/interaction.model";
 import { LikeUser } from "../dto/likeUser.dto";
 import { sendMessage } from "../dto/sendMessage.dto";
+import { matchUser } from "../dto/matchUser.dto";
+import { UserIDM } from "../dto/UserIDM.dto";
 
 const update = async (req: Request, res: Response): Promise<void> => {
+  
   const user = req.body as UserID;
   let isFirstLogin = false;
-  user.user.age = getAge(user.user.dateOfBirth);
+  user.user.age =getAge(user.user.dateOfBirth)
   const userRef = database.collection("user").doc(user.id.toString());
   userRef
     .set(user.user, { merge: true })
@@ -48,35 +51,6 @@ const update = async (req: Request, res: Response): Promise<void> => {
         data: {},
       });
     });
-};
-
-const getAllUser = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const usersRef = database.collection("user");
-    const usersSnapshot = await usersRef.get();
-    const users = [];
-
-    const imagesRef = database.collection("image");
-    const imagesSnapshot = await imagesRef.get();
-    const images = {};
-
-    imagesSnapshot.forEach((doc) => {
-      images[doc.data().userID] = doc.data().url;
-    });
-
-    usersSnapshot.forEach((doc) => {
-      const user = {
-        id: doc.id,
-        ...doc.data(),
-        url: images[doc.id] || null,
-      };
-      users.push(user);
-    });
-
-    res.status(200).json({ users });
-  } catch (error) {
-    res.status(404).json({ error });
-  }
 };
 
 const updateMessageID = async (
@@ -144,6 +118,8 @@ const like = async (req: Request, res: Response): Promise<void> => {
       .where("isLike", "==", true)
       .get();
 
+    console.log(matchQuery.size);
+
     // Kiểm tra và trả về kết quả
     if (matchQuery.size > 0) {
       const newMessageRef = realtimedb.ref("message").push(); // Tạo một DocumentReference mới
@@ -163,7 +139,6 @@ const like = async (req: Request, res: Response): Promise<void> => {
       
       
       res.status(200).json({
-        isError: true,
         message: "It's a match!",
         data: {
           isMatch:true,
@@ -173,8 +148,7 @@ const like = async (req: Request, res: Response): Promise<void> => {
           fullName: await getFullName(likeRequest.ortherUserID),
         },
       });
-    } else {
-      res.status(200).json({
+    } else {      res.status(200).json({
         isError: true,
         message: "Like Success",
         data:{
@@ -187,8 +161,7 @@ const like = async (req: Request, res: Response): Promise<void> => {
     res.status(400).send({
       isError:true,
       message:error
-    })
-  }
+    })  }
 };
 
 const chat = async (req: Request, res: Response): Promise<void> => {
@@ -205,24 +178,19 @@ const chat = async (req: Request, res: Response): Promise<void> => {
       senderID: sendMessage.userID,
     });
     res.status(200).json({
-      isError: false,
       message: "Tin nhắn đã được gửi thành công",
       data: {
         messageData: {
           messageID: sendMessage.messageID,
           senderID: sendMessage.userID,
           content: sendMessage.content,
-          date: date,
+          date,
         },
       },
     });
   } catch (error) {
     console.error("Lỗi khi gửi tin nhắn:", error);
-    res.status(500).send({
-      isError: true,
-      message: "Có lỗi xảy ra khi gửi tin nhắn",
-      data: {},
-    });
+    res.status(500).send("Có lỗi xảy ra khi gửi tin nhắn");
   }
 };
 
@@ -341,7 +309,11 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
       database.collection("user").where("isAuth", "==", true).where(admin.firestore.FieldPath.documentId(), "!=", userID).get(),
       database.collection("location").get(),
       database.collection("image").get(),
-      database.collection("like").where("userIDLike", "==", userID).get(),
+      database
+        .collection("like")
+        .where("userIDLike", "==", userID)
+        .where("isLike", "==", true)
+        .get(),
     ]);
 
     
@@ -390,17 +362,12 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
         point2.longitude = arrayLocation[0].location.lng;
         distance = getDistance(p, point2) as number;
       }
-      let dcUser = {} as DiscorverUser
-
-      dcUser.userID = userDoc.id;
+      let dcUser = {} as DiscorverUser;
       dcUser.age = userDoc.user.age;
       dcUser.fullName = userDoc.user.fullName;
-
       (dcUser.hobby = userDoc.user.hobby),
         (dcUser.occupation = userDoc.user.occupation);
       dcUser.distance = distance;
-      dcUser.locationName = arrayLocation.shift().location.name
-      
       dcUser.imageUrl = imageDoc
         .filter((x) => 
           x.image.userID == userDoc.id
@@ -414,7 +381,7 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
       isError: false,
       message: "Danh sách user",
       data: {
-        discorverUser: userDistance.filter((x) => x.distance < distance).slice(0),
+        discorverUser: userDistance.filter((x) => x.distance < distance),
       },
     });
   } catch (error) {
@@ -474,7 +441,7 @@ const login = async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     res.status(500).send({
       isError: true,
-      message: "can not log in !!",
+      message:"can not log in !!"
     });
   }
 };
@@ -503,17 +470,15 @@ const getmatch = async (req: Request, res: Response): Promise<void> => {
         database.collection("image").get(),
       ]);
       const likelocal = likeRef.docs.map((doc) => doc.data() as Interaction);
-      const userlocal: Array<UserID> = useref.docs
+      const userlocal: Array<UserIDM> = useref.docs
         .map((doc) => {
-          const u = {} as UserID;
+          const u = {} as UserIDM;
           u.id = doc.id;
-          u.user = doc.data() as User;
+          u.user = doc.data() as matchUser;
           return u;
         })
-        .filter((doc) =>
-          likelocal.map((x) => x.user_id_liked).includes(doc.id)
-        );
-      console.log(userlocal);
+        .filter((doc)=>(likelocal.map(x =>x.user_id_liked)).includes(doc.id))
+      console.log(likelocal);
       //.filter((x)=>{
       //   x.id =
       // })
@@ -529,11 +494,9 @@ const getmatch = async (req: Request, res: Response): Promise<void> => {
       const matchlist: Array<Match> = userlocal.map((doc) => {
         const m = {} as Match;
         m.user = doc.user;
-        const temp1 = imagelocal.filter((x) => {
-          return x.image.userID == doc.id;
-        });
-        const temp = temp1.map((x) => x.image.url);
-        m.urlimage = temp[0];
+        let x = imagelocal.filter((x) => x.image.userID == doc.id).map((x) => x.image.url)
+        console.log(x[0])
+        m.user.imageUrl = x[0]
         return m;
       });
 
@@ -541,93 +504,96 @@ const getmatch = async (req: Request, res: Response): Promise<void> => {
         isError: false,
         message: "success",
         data: {
-          match: matchlist.map((x) => x.user),
-          image: matchlist.map((x) => x.urlimage),
+          match: matchlist.map(x => x.user)
+          
         },
       });
     }
   } catch (error) {
     res.status(500).send({
       isError: true,
-      message: "can not log in !!",
-    });
+      message:"can not log in !!"
+    })
   }
 };
 
-const getConver = async (req: Request, res: Response): Promise<void> => {
-  const { userID } = req.body;
-  const userR = await database.collection("user").doc(userID);
-  // console.log(userID)
-  // const likeRef = await database.collection("like2");
-  // const userRef = database.collection("user");
-  try {
-    const likeRef = await database
-      .collection("like2")
-      .where("message_id", "!=", null)
-      .where("user_id_like", "==", userID)
-      .get();
-    // console.log(likeSnap.docs[0].data())
-    if (likeRef.empty) {
-      res.status(404).send({
-        "isError":false,
-        "message":"success",
-      });
-    } else {
-      const [useref, imageRef] = await Promise.all([
-        database.collection("user").get(),
-        database.collection("image").get(),
-      ]);
-      const likelocal = likeRef.docs.map((doc) => doc.data() as Interaction);
-      const userlocal: Array<UserID> = useref.docs
-        .map((doc) => {
-          const u = {} as UserID;
-          u.id = doc.id;
-          u.user = doc.data() as User;
-          return u;
-        })
-        .filter((doc) =>
-          likelocal.map((x) => x.user_id_liked).includes(doc.id)
-        );
+// const getConver = async (req: Request, res: Response): Promise<void> => {
+//   const { userID } = req.body;
+//   const userR = await database.collection("user").doc(userID);
+//   // console.log(userID)
+//   // const likeRef = await database.collection("like2");
+//   // const userRef = database.collection("user");
+//   try {
+//     const likeRef = await database
+//       .collection("like2")
+//       .where("message_id", "!=", null)
+//       .where("user_id_like", "==", userID)
+//       .get();
+//     // console.log(likeSnap.docs[0].data())
+//     if (likeRef.empty) {
+//       res.status(404).send({
+//         "isError":false,
+//         "message":"success",
+//       });
+//     } else {
+//       const [useref, imageRef] = await Promise.all([
+//         database.collection("user").get(),
+//         database.collection("image").get(),
+//       ]);
+//       const likelocal = likeRef.docs.map((doc) => doc.data() as Interaction);
+//       const userlocal: Array<UserID> = useref.docs
+//         .map((doc) => {
+//           const u = {} as UserID;
+//           u.id = doc.id;
+//           u.user = doc.data() as User;
+//           return u;
+//         })
+//         .filter((doc) =>
+//           likelocal.map((x) => x.user_id_liked).includes(doc.id)
+//         );
       
-      const imagelocal: Array<ImageID> = imageRef.docs.map((doc) => {
-        const i = {} as ImageID;
-        i.id = doc.id;
-        i.image = doc.data() as Image;
-        return i;
-      });
-      //console.log(imagelocal)
-      const convermatch: Array<Match> = userlocal.map((doc) => {
-        const m = {} as Match;
-        m.user = doc.user;
-        const temp1 = imagelocal.filter((x) => {
-          return x.image.userID == doc.id;
-        });
-        const temp = temp1.map((x) => x.image.url);
-        m.urlimage = temp[0];
-        return m;
-      });
-
-      res.status(200).send({
-        isError: false,
-        message: "success",
-        data: {},
-      });
-    }
-  } catch (error) {
-    res.status(500).send({
-      isError: false,
-      message: "cannot get conver",
-    });
-  }
-};
+//       const imagelocal: Array<ImageID> = imageRef.docs.map((doc) => {
+//         const i = {} as ImageID;
+//         i.id = doc.id;
+//         i.image = doc.data() as Image;
+//         return i;
+//       });
+//       //console.log(imagelocal)
+//       const convermatch: Array<Match> = userlocal.map((doc) => {
+//         const m = {} as Match;
+//         m.user = doc.user;
+//         const temp1 = imagelocal.filter((x) => {
+//           return x.image.userID == doc.id;
+//         });
+//         const temp = temp1.map((x) => x.image.url);
+//         m.urlimage = temp[0];
+//         return m;
+//       })
+      
+//       res.status(200).send({
+//         "isError":false,
+//         "message":"success",
+//         data:{
+          
+//         }
+//       });
+//     }
+//   } catch (error) {
+//     res.status(500).send({
+//       "isError":false,
+//       "message":"cannot get conver"
+//     });
+//   }
+// };
 
 export default {
   update,
-  getAllUser,
   like,
   chat,
   register,
   getDiscorverUser,
+
   login,
   getmatch,
+  
 };
