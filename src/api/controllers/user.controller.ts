@@ -24,7 +24,6 @@ import { UserID } from "../dto/userid.dto";
 import { Match } from "../dto/match.dto";
 import { Interaction } from "../model/interaction.model";
 import { LikeUser } from "../dto/likeUser.dto";
-import { log } from "console";
 import { sendMessage } from "../dto/sendMessage.dto";
 
 const update = async (req: Request, res: Response): Promise<void> => {
@@ -125,6 +124,7 @@ const getFullName = async (ID) => {
 };
 
 const like = async (req: Request, res: Response): Promise<void> => {
+
   const likeRequest = req.body as LikeUser;
   const like = database.collection("like");
   const date = new Date().toLocaleString();
@@ -160,11 +160,13 @@ const like = async (req: Request, res: Response): Promise<void> => {
           newMessageId
         ),
       ]);
-
+      
+      
       res.status(200).json({
         isError: true,
         message: "It's a match!",
         data: {
+          isMatch:true,
           otherUserID: likeRequest.ortherUserID,
           imageUrl: "chua lam",
           messageID: newMessageId,
@@ -175,11 +177,17 @@ const like = async (req: Request, res: Response): Promise<void> => {
       res.status(200).json({
         isError: true,
         message: "Like Success",
+        data:{
+          isMatch:false
+        }
       });
     }
   } catch (error) {
     console.log("lỗi rồi kìa !!!" + error);
-    res.status(400).json({ error });
+    res.status(400).send({
+      isError:true,
+      message:error
+    })
   }
 };
 
