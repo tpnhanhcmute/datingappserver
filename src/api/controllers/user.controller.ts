@@ -137,18 +137,20 @@ const like = async (req: Request, res: Response): Promise<void> => {
         ),
       ]);
       
-      
-      res.status(200).json({
+    const fullName = await getFullName(likeRequest.ortherUserID)
+      res.status(200).send({
+        isError: false,
         message: "It's a match!",
         data: {
           isMatch:true,
           otherUserID: likeRequest.ortherUserID,
           imageUrl: "chua lam",
           messageID: newMessageId,
-          fullName: await getFullName(likeRequest.ortherUserID),
+          fullName: fullName
         },
       });
-    } else {      res.status(200).json({
+    } else {     
+       res.status(200).send({
         isError: true,
         message: "Like Success",
         data:{
@@ -161,7 +163,8 @@ const like = async (req: Request, res: Response): Promise<void> => {
     res.status(400).send({
       isError:true,
       message:error
-    })  }
+    })  
+  }
 };
 
 const chat = async (req: Request, res: Response): Promise<void> => {
