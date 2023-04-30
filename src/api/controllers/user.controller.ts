@@ -577,7 +577,7 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
       //console.log(imagelocal)
       const converlist: Array<conver> = userlocal.map((doc) => {
         const m = {} as conver;
-        m.age = doc.user.age;
+        m.userID = doc.id;
         m.fullName = doc.user.fullName;
         let x = imagelocal.filter((x) => x.image.userID == doc.id).map((x) => x.image.url)
         m.imageUrl = x[0]
