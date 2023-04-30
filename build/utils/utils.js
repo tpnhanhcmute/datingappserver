@@ -61,7 +61,9 @@ const getDistance = function distance(point1, point2) {
 };
 exports.getDistance = getDistance;
 const getAge = (dateOfBirth) => {
-    const birthDate = new Date(dateOfBirth);
+    const [day, month, year] = dateOfBirth.split("/").map(Number);
+    const birthDate = new Date(year, month - 1, day);
+    // Calculate the age in years
     const differenceInMs = Date.now() - birthDate.getTime();
     const ageInMs = new Date(differenceInMs).getFullYear() - 1970;
     const age = Math.floor(ageInMs);

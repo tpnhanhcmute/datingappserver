@@ -381,11 +381,11 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 const getmatch = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { userID } = req.body;
-    const userR = yield firebase_service_1.database.collection("user").doc(userID);
-    // console.log(userID)
-    // const likeRef = await database.collection("like2");
-    // const userRef = database.collection("user");
     try {
+        const userR = yield firebase_service_1.database.collection("user").doc(userID);
+        // console.log(userID)
+        // const likeRef = await database.collection("like2");
+        // const userRef = database.collection("user");
         const likeRef = yield firebase_service_1.database
             .collection("like2")
             .where("message_id", "!=", null)
@@ -393,7 +393,10 @@ const getmatch = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             .get();
         // console.log(likeSnap.docs[0].data())
         if (likeRef.empty) {
-            res.status(404).send("none match !!");
+            res.status(404).send({
+                isError: true,
+                message: "user is not exist !!"
+            });
         }
         else {
             const [useref, imageRef] = yield Promise.all([
@@ -462,7 +465,10 @@ const getConver = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             .get();
         // console.log(likeSnap.docs[0].data())
         if (likeRef.empty) {
-            res.status(404).send("none match !!");
+            res.status(404).send({
+                "isError": false,
+                "message": "success",
+            });
         }
         else {
             const [useref, imageRef] = yield Promise.all([
@@ -478,11 +484,6 @@ const getConver = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 return u;
             })
                 .filter((doc) => likelocal.map((x) => x.user_id_liked).includes(doc.id));
-            console.log(userlocal);
-            //.filter((x)=>{
-            //   x.id =
-            // })
-            // console.log(userlocal)
             const imagelocal = imageRef.docs.map((doc) => {
                 const i = {};
                 i.id = doc.id;
@@ -508,7 +509,10 @@ const getConver = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         }
     }
     catch (error) {
-        res.status(500).send("Error getting matclist");
+        res.status(500).send({
+            "isError": false,
+            "message": "cannot get conver"
+        });
     }
 });
 exports.default = {
