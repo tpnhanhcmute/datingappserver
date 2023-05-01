@@ -471,9 +471,10 @@ const getmatch = async (req: Request, res: Response): Promise<void> => {
   
     const likeRef = await database
       .collection("like")
-      .where("messageID", "!=", null)
       .where("userID", "==", userID)
+      .where("messageID", "!=", "")
       .get();
+
     if (likeRef.empty) {
       res.status(404).send({
         isError: true,
