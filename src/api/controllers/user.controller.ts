@@ -542,7 +542,7 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
   
     const likeRef = await database
       .collection("like")
-      .where("messageID", "!=", null)
+      .where("messageID", "!=", "")
       .where("userID", "==", userID)
       .get();
 
@@ -581,6 +581,7 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
         const m = {} as conver;
         m.userID = doc.id;
         m.fullName = doc.user.fullName;
+        m.messageID = likelocal.filter((x)=>x.otherUserID == doc.id).map(x=>x.messageID).shift()
         let x = imagelocal.filter((x) => x.image.userID == doc.id).map((x) => x.image.url)
         m.imageUrl = x[0]
         return m;

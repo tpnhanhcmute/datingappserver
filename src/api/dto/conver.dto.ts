@@ -7,5 +7,5 @@ export interface conver{
     occupation:String
     imageUrl:String
     locationName:String
-    message:String
+    messageID:String
 }
