@@ -509,6 +509,7 @@ const getmatch = async (req: Request, res: Response): Promise<void> => {
       const matchlist: Array<Match> = userlocal.map((doc) => {
         const m = {} as Match;
         m.user = doc.user;
+        m.user.userID = doc.id
         let x = imagelocal.filter((x) => x.image.userID == doc.id).map((x) => x.image.url)
         console.log(x[0])
         m.user.imageUrl = x[0]
