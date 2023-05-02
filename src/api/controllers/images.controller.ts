@@ -37,14 +37,14 @@ const uploadImage = async (req: Request, res: Response): Promise<void> => {
 
 const getImages = async (req:Request, res:Response):Promise<void>=>{
     try{
-      const userID = req.body as String
-      const imageRef = await (database.collection("image")).get()
+      const {userID} = req.body
+
+      const imageRef = await( database.collection("image").where("userID", "==", userID))
       
-      if(!imageRef.empty)
-      {
+     
         const listImage = [] as Array<String>
 
-        imageRef.docs.forEach(x=>{
+        ;(await imageRef.get()).docs.forEach(x=>{
           const image = x.data() as Image
           listImage.push(image.url)
         })
@@ -55,9 +55,7 @@ const getImages = async (req:Request, res:Response):Promise<void>=>{
             listImage: listImage
           }
         })
-      }else{
-        throw "Use need to upload image to app"
-      }
+      
     }catch(error){
       res.status(500).send({
         isError:true,
