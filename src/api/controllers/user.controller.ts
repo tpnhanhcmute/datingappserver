@@ -42,7 +42,9 @@ const update = async (req: Request, res: Response): Promise<void> => {
       res.status(200).send({
         isError: false,
         message: "Update successfully",
-        data: {},
+        data: {
+          user: user.user
+        },
       });
     })
 
