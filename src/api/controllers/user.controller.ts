@@ -216,6 +216,7 @@ const register = async (req: Request, res: Response): Promise<void> => {
   newUser.email = email;
   newUser.password = await hashMessage(password);
   newUser.isFirstLogin = true;
+  newUser.isAuth = false;
 
   const userRef = database.collection("user");
   try {
@@ -416,7 +417,7 @@ const login = async (req: Request, res: Response): Promise<void> => {
   const newUser = {} as User;
 
   try {
-    const snapshots = await userRef.where("email", "==", email).get();
+    const snapshots = await userRef.where("email", "==", email).where("isAuth","==", true).get();
 
     if (snapshots.empty) {
       res.status(404).send({
