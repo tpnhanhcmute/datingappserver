@@ -46,7 +46,8 @@ const getImages = async (req:Request, res:Response):Promise<void>=>{
 
         ;(await imageRef.get()).docs.forEach(x=>{
           const image = x.data() as Image
-          listImage.push(image.url)
+          if(image.url)
+            listImage.push(image.url)
         })
         res.status(200).send({
           isError:false,
