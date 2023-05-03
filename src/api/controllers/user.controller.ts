@@ -550,7 +550,7 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
     console.log(chatRef.get())
     // console.log(likeSnap.docs[0].data())
     if (likeRef.empty) {
-      res.status(404).send({
+      res.status(400).send({
         isError: true,
         message:"user is not exist !!"
       });
