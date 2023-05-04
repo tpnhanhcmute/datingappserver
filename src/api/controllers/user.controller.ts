@@ -7,12 +7,6 @@ import {
   sendEmail,
 } from "../services/firebase.service";
 import { User } from "../model/user.model";import { hashMessage, randomNumber, getDistance, getAge } from "../../utils/utils";
-import {
-  collection,
-  query as firestoreQuery,
-  where,
-  getDocs,
-} from "firebase/firestore";
 import { interaction } from "../model/like.model";
 import { Location } from "../model/location.model";
 import { Point } from "../model/point.model";
