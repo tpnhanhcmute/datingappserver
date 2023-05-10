@@ -621,15 +621,18 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
   }
 };
 const getUser = async (req:Request, res: Response):Promise<void> =>{
-  const {userID} = req.body
+  const {userID,muserID} = req.body
   try{
-    const [userCollection, imageCollection, locationCollection]=
+    const [userCollection, imageCollection, locationCollection,mlocationColection]=
    await Promise.all([database.collection("user").doc(userID).get(),
     database.collection("image").where("userID", "==", userID).get(),
-    database.collection("location").doc(userID).get()])
+    database.collection("location").doc(userID).get(),
+    database.collection("location").doc(muserID).get()])
+    
 
     const user = userCollection.data() as User
     const location = locationCollection.data() as Location
+    const mlocation = mlocationColection.data() as Location
     const userInfo = {} as DiscorverUser
     userInfo.userID = userCollection.id
     userInfo.age = user.age
@@ -637,6 +640,14 @@ const getUser = async (req:Request, res: Response):Promise<void> =>{
     userInfo.hobby = user.hobby,
     userInfo.locationName = location.name
     userInfo.occupation =user.occupation
+    const point = {} as Point;
+    const mponit = {} as Point;
+    point.latitude = location.lat;
+    point.longitude = location.lng;
+    mponit.latitude = mlocation.lat;
+    mponit.longitude = mlocation.lng;
+
+    userInfo.distance = getDistance(point,mponit)
     userInfo.imageUrl = imageCollection.docs.map(x =>{
       const image = x.data() as Image
       return image.url
@@ -650,7 +661,7 @@ const getUser = async (req:Request, res: Response):Promise<void> =>{
     })
   }
   catch(error){
-    res.status(200).send({
+    res.status(400).send({
       isError:true,
       message:error
     })
