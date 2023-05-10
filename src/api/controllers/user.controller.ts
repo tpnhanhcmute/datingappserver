@@ -128,7 +128,7 @@ const like = async (req: Request, res: Response): Promise<void> => {
       });
       const userRef = await database.collection("user").doc(likeRequest.otherUserID.toString()).get()
       const userDoc = userRef.data() as User
-      
+
       if(userDoc.deviceToken != null){
         const registerDeviceTokens = []
         registerDeviceTokens.push(userDoc.deviceToken)
@@ -136,7 +136,7 @@ const like = async (req: Request, res: Response): Promise<void> => {
               {
                   tokens:registerDeviceTokens,
                   notification:{
-                      title:"Chatapp.com",
+                      title:"Datting app.com",
                       body:`New match with ${likeRequest.userID}`
                   }
               }
@@ -204,6 +204,7 @@ const chat = async (req: Request, res: Response): Promise<void> => {
       senderID: sendMessage.userID,
     });
     res.status(200).json({
+      isError:false,
       message: "Tin nhắn đã được gửi thành công",
       data: {
         messageData: {
@@ -214,6 +215,24 @@ const chat = async (req: Request, res: Response): Promise<void> => {
         },
       },
     });
+
+    const userRef = await database.collection("user").doc(sendMessage.otherUserID.toString()).get()
+      const userDoc = userRef.data() as User
+
+      if(userDoc.deviceToken != null){
+        const registerDeviceTokens = []
+        registerDeviceTokens.push(userDoc.deviceToken)
+          message.sendEachForMulticast(
+              {
+                  tokens:registerDeviceTokens,
+                  notification:{
+                      title:"Datting app.com",
+                      body:`New message from ${sendMessage.userID}`
+                  }
+              }
+          );
+      }
+      
   } catch (error) {
     console.error("Lỗi khi gửi tin nhắn:", error);
     res.status(500).send("Có lỗi xảy ra khi gửi tin nhắn");
