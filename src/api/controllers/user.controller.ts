@@ -5,9 +5,9 @@ import {
   database,
   realtimedb,
   sendEmail,
+  message
 } from "../services/firebase.service";
 import { User } from "../model/user.model";import { hashMessage, randomNumber, getDistance, getAge } from "../../utils/utils";
-import { interaction } from "../model/like.model";
 import { Location } from "../model/location.model";
 import { Point } from "../model/point.model";
 import { DiscorverUser } from "../dto/discoverUser.dto";
@@ -126,6 +126,23 @@ const like = async (req: Request, res: Response): Promise<void> => {
       newMessageRef.set({
         match: `match on ${date}`,
       });
+      const userRef = await database.collection("user").doc(likeRequest.otherUserID.toString()).get()
+      const userDoc = userRef.data() as User
+      
+      if(userDoc.deviceToken != null){
+        const registerDeviceTokens = []
+        registerDeviceTokens.push(userDoc.deviceToken)
+          message.sendEachForMulticast(
+              {
+                  tokens:registerDeviceTokens,
+                  notification:{
+                      title:"Chatapp.com",
+                      body:`New match with ${likeRequest.userID}`
+                  }
+              }
+          );
+      }
+      
 
       const [_, imageRef] = await Promise.all([
         updateMessageID(
@@ -406,7 +423,7 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
 };
 
 const login = async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body;
+  const { deviceToken, email, password } = req.body;
   const userRef = database.collection("user");
   const newUser = {} as User;
 
@@ -414,10 +431,9 @@ const login = async (req: Request, res: Response): Promise<void> => {
     const snapshots = await userRef.where("email", "==", email).where("isAuth","==", true).get();
 
     if (snapshots.empty) {
-      res.status(404).send({
-        isError: true,
-        message:"user is not exist !!"
-      })
+     
+       throw "user is not exist!!"
+      
     } else {
       const passwordHash = await hashMessage(password);
       const snapshot = await userRef
@@ -425,10 +441,15 @@ const login = async (req: Request, res: Response): Promise<void> => {
         .where("password", "==", passwordHash)
         .get();
       if (snapshot.empty) {
-        res.status(404).send("password is not correct");
+        throw "password is not correct"
       } else {
         // console.log(x.docs[0].data().career)
         const userdoc = snapshot.docs[0].data();
+
+        await database.collection("user").doc(snapshot.docs[0].id).update({
+          deviceToken:deviceToken
+        })
+
 
         newUser.career = userdoc.career;
         newUser.age = userdoc.age;
@@ -593,7 +614,7 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
       });
     }
   } catch (error) {
-    res.status(500).send({
+    res.status(200).send({
       isError: true,
       message:"can not log in !!"
     })
@@ -629,7 +650,7 @@ const getUser = async (req:Request, res: Response):Promise<void> =>{
     })
   }
   catch(error){
-    res.status(400).send({
+    res.status(200).send({
       isError:true,
       message:error
     })

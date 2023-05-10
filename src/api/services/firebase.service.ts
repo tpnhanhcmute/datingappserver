@@ -6,7 +6,7 @@ import * as nodemailer from 'nodemailer';
 import { getFirestore } from 'firebase-admin/firestore';
 
 const gmail = "tpnhan12a1@gmail.com"
-const password = "xdvdvvboulygwevi"
+const password = "pkzcuwhfzyabsqnv"
 
 const app = admin.initializeApp({
     credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
@@ -38,4 +38,5 @@ const sendEmail = async function senEmail( to:string,subject: string ,message:st
     }
   });
 }
-export {admin, realtimedb, database ,sendEmail, firebase, } 
+const message = admin.messaging()
+export {admin, realtimedb, database ,sendEmail, firebase, message} 

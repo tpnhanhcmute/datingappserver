@@ -12,4 +12,5 @@ export interface User {
     isAuth:Boolean 
     isFirstLogin:Boolean 
     occupation:string|null
+    deviceToken: string
   }
