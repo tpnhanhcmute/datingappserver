@@ -23,6 +23,7 @@ import { matchUser } from "../dto/matchUser.dto";
 import { UserIDM } from "../dto/UserIDM.dto";
 import { UserIDC } from "../dto/UserIDC.dto";
 import { conver } from "../dto/conver.dto";
+import { doc } from "firebase/firestore";
 
 const update = async (req: Request, res: Response): Promise<void> => {
   
@@ -203,9 +204,10 @@ const chat = async (req: Request, res: Response): Promise<void> => {
       date,
       senderID: sendMessage.userID,
     });
-    const userRef = await database.collection("user").doc(sendMessage.otherUserID.toString()).get()
-    const userDoc = userRef.data() as User
-
+    const [userRef, otherUserRef] = await Promise.all([ database.collection("user").doc(sendMessage.userID.toString()).get()
+    ,database.collection("user").doc(sendMessage.otherUserID.toString()).get()])
+    
+    const userDoc = otherUserRef.data() as User
     if(userDoc.deviceToken != null){
       const registerDeviceTokens = []
       registerDeviceTokens.push(userDoc.deviceToken)
@@ -214,7 +216,7 @@ const chat = async (req: Request, res: Response): Promise<void> => {
                 tokens:registerDeviceTokens,
                 notification:{
                     title:"Datting app.com",
-                    body:`New message from ${sendMessage.userID}`
+                    body:`New message from ${(userRef.data() as User).fullName}`
                 }
             }
         );
