@@ -203,7 +203,24 @@ const chat = async (req: Request, res: Response): Promise<void> => {
       date,
       senderID: sendMessage.userID,
     });
-    res.status(200).json({
+    const userRef = await database.collection("user").doc(sendMessage.otherUserID.toString()).get()
+    const userDoc = userRef.data() as User
+
+    if(userDoc.deviceToken != null){
+      const registerDeviceTokens = []
+      registerDeviceTokens.push(userDoc.deviceToken)
+        message.sendEachForMulticast(
+            {
+                tokens:registerDeviceTokens,
+                notification:{
+                    title:"Datting app.com",
+                    body:`New message from ${sendMessage.userID}`
+                }
+            }
+        );
+    }
+    
+    res.status(200).send({
       isError:false,
       message: "Tin nhắn đã được gửi thành công",
       data: {
@@ -215,27 +232,12 @@ const chat = async (req: Request, res: Response): Promise<void> => {
         },
       },
     });
-
-    const userRef = await database.collection("user").doc(sendMessage.otherUserID.toString()).get()
-      const userDoc = userRef.data() as User
-
-      if(userDoc.deviceToken != null){
-        const registerDeviceTokens = []
-        registerDeviceTokens.push(userDoc.deviceToken)
-          message.sendEachForMulticast(
-              {
-                  tokens:registerDeviceTokens,
-                  notification:{
-                      title:"Datting app.com",
-                      body:`New message from ${sendMessage.userID}`
-                  }
-              }
-          );
-      }
-      
   } catch (error) {
     console.error("Lỗi khi gửi tin nhắn:", error);
-    res.status(500).send("Có lỗi xảy ra khi gửi tin nhắn");
+    res.status(500).send({
+      isError: true,
+      message:error
+    });
   }
 };
 
