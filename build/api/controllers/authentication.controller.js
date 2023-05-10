@@ -24,7 +24,7 @@ const authentication = (req, res) => __awaiter(void 0, void 0, void 0, function*
         });
     }
     catch (error) {
-        res.status(200).send({
+        res.status(400).send({
             isError: true,
             message: error,
         });
