@@ -36,4 +36,28 @@ const uploadImage = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         });
     }
 });
-exports.default = { uploadImage };
+const getImages = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { userID } = req.body;
+        const imageRef = yield (firebase_service_1.database.collection("image").where("userID", "==", userID));
+        const listImage = [];
+        (yield imageRef.get()).docs.forEach(x => {
+            const image = x.data();
+            listImage.push(image.url);
+        });
+        res.status(200).send({
+            isError: false,
+            message: "Get image url successfull",
+            data: {
+                listImage: listImage
+            }
+        });
+    }
+    catch (error) {
+        res.status(500).send({
+            isError: true,
+            message: error,
+        });
+    }
+});
+exports.default = { uploadImage, getImages };

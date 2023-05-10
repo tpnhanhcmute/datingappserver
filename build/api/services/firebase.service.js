@@ -31,11 +31,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendEmail = exports.database = exports.realtimedb = exports.admin = void 0;
+exports.firebase = exports.sendEmail = exports.database = exports.realtimedb = exports.admin = void 0;
 const admin = __importStar(require("firebase-admin"));
 exports.admin = admin;
 const serviceAccount = __importStar(require("../../configs/firebase-adminsdk.json"));
+const app_1 = __importDefault(require("firebase/app"));
+exports.firebase = app_1.default;
 require("firebase/firestore");
 const nodemailer = __importStar(require("nodemailer"));
 const firestore_1 = require("firebase-admin/firestore");

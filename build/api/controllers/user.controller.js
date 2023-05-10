@@ -33,20 +33,6 @@ const update = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         });
     });
 });
-const getUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const usersRef = firebase_service_1.database.collection("user");
-    const snapshot = yield usersRef.get();
-    const users = [];
-    try {
-        snapshot.forEach((doc) => {
-            users.push(Object.assign({ id: doc.id }, doc.data()));
-        });
-        res.status(200).json({ users });
-    }
-    catch (error) {
-        res.status(404).json({ error });
-    }
-});
 const updateMessageID = (userID, otherUserID, messageId) => __awaiter(void 0, void 0, void 0, function* () {
     const like = firebase_service_1.database.collection("like");
     const query1 = like
@@ -87,46 +73,60 @@ const like = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         yield like.add({
             userID: likeRequest.userID,
             isLike: likeRequest.isLike,
-            otherUserID: likeRequest.ortherUserID,
+            otherUserID: likeRequest.otherUserID,
             messageID: "",
         });
         // Tạo query để kiểm tra tương thích
         const matchQuery = yield like
-            .where("userID", "==", likeRequest.ortherUserID)
+            .where("userID", "==", likeRequest.otherUserID)
             .where("otherUserID", "==", likeRequest.userID)
             .where("isLike", "==", true)
             .get();
-        console.log(matchQuery.size);
+        //console.log(matchQuery.docs);
         // Kiểm tra và trả về kết quả
-        if (matchQuery.size > 0) {
+        if (matchQuery.docs.length > 0) {
             const newMessageRef = firebase_service_1.realtimedb.ref("message").push(); // Tạo một DocumentReference mới
             const newMessageId = newMessageRef.key; // Lấy ID của document vừa tạo
             newMessageRef.set({
                 match: `match on ${date}`,
             });
-            yield Promise.all([
-                updateMessageID(likeRequest.userID, likeRequest.ortherUserID, newMessageId),
+            const [_, imageRef] = yield Promise.all([
+                updateMessageID(likeRequest.userID, likeRequest.otherUserID, newMessageId), firebase_service_1.database.collection("image").where("userID", "==", likeRequest.otherUserID).get()
             ]);
-            res.status(200).json({
-                isError: true,
+            const imageDoc = imageRef.docs.shift();
+            let url = "";
+            if (imageDoc != null) {
+                url = imageDoc.data().url;
+            }
+            const fullName = yield getFullName(likeRequest.otherUserID);
+            res.status(200).send({
+                isError: false,
                 message: "It's a match!",
                 data: {
-                    otherUserID: likeRequest.ortherUserID,
-                    imageUrl: "chua lam",
+                    isMatch: true,
+                    otherUserID: likeRequest.otherUserID,
+                    imageUrl: url,
                     messageID: newMessageId,
-                    fullName: yield getFullName(likeRequest.ortherUserID),
+                    fullName: fullName
                 },
             });
         }
         else {
-            res.status(200).json({
+            res.status(200).send({
                 isError: true,
                 message: "Like Success",
+                data: {
+                    isMatch: false
+                }
             });
         }
     }
     catch (error) {
-        res.status(400).json({ error });
+        console.log("lỗi rồi kìa !!!" + error);
+        res.status(400).send({
+            isError: true,
+            message: error
+        });
     }
 });
 const chat = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -262,13 +262,16 @@ const getDiscorverUser = (req, res) => __awaiter(void 0, void 0, void 0, functio
         }
     }
     try {
-        const [userCollection, locationCollection, imageCollection, likeCollection,] = yield Promise.all([
-            firebase_service_1.database.collection("user").where("isAuth", "==", true).get(),
+        let [userCollection, locationCollection, imageCollection, likeCollection,] = yield Promise.all([
+            firebase_service_1.database.collection("user").where("isAuth", "==", true).where(firebase_service_1.admin.firestore.FieldPath.documentId(), "!=", userID).get(),
             firebase_service_1.database.collection("location").get(),
             firebase_service_1.database.collection("image").get(),
-            firebase_service_1.database.collection("like").where("userIDLike", "==", userID).get(),
+            firebase_service_1.database
+                .collection("like")
+                .where("userID", "==", userID)
+                .get(),
         ]);
-        let likeDocs = likeCollection.docs.map((like) => like.data().userIDLiked);
+        let likeDocs = likeCollection.docs.map((like) => like.data().otherUserID);
         let userDocs = userCollection.docs
             .map((doc) => {
             let u = {};
@@ -303,16 +306,15 @@ const getDiscorverUser = (req, res) => __awaiter(void 0, void 0, void 0, functio
                 distance = (0, utils_1.getDistance)(p, point2);
             }
             let dcUser = {};
+            dcUser.userID = userDoc.id;
             dcUser.age = userDoc.user.age;
             dcUser.fullName = userDoc.user.fullName;
             (dcUser.hobby = userDoc.user.hobby),
                 (dcUser.occupation = userDoc.user.occupation);
             dcUser.distance = distance;
             dcUser.imageUrl = imageDoc
-                .filter((x) => {
-                x.image.userID == userRef.id;
-            })
-                .map((x) => x.image.url);
+                .filter((x) => x.image.userID == userDoc.id)
+                .map(x => x.image.url);
             return dcUser;
         });
         res.status(200).send({
@@ -337,7 +339,10 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const snapshots = yield userRef.where("email", "==", email).get();
         if (snapshots.empty) {
-            res.status(404).send("user is not exist !!");
+            res.status(404).send({
+                isError: true,
+                message: "user is not exist !!"
+            });
         }
         else {
             const passwordHash = yield (0, utils_1.hashMessage)(password);
@@ -382,16 +387,14 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 const getmatch = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { userID } = req.body;
     try {
-        const userR = yield firebase_service_1.database.collection("user").doc(userID);
         // console.log(userID)
         // const likeRef = await database.collection("like2");
         // const userRef = database.collection("user");
         const likeRef = yield firebase_service_1.database
-            .collection("like2")
-            .where("message_id", "!=", null)
-            .where("user_id_like", "==", userID)
+            .collection("like")
+            .where("userID", "==", userID)
+            .where("messageID", "!=", "")
             .get();
-        // console.log(likeSnap.docs[0].data())
         if (likeRef.empty) {
             res.status(404).send({
                 isError: true,
@@ -411,8 +414,8 @@ const getmatch = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 u.user = doc.data();
                 return u;
             })
-                .filter((doc) => likelocal.map((x) => x.user_id_liked).includes(doc.id));
-            console.log(userlocal);
+                .filter((doc) => (likelocal.map(x => x.otherUserID)).includes(doc.id));
+            console.log(likelocal);
             //.filter((x)=>{
             //   x.id =
             // })
@@ -427,19 +430,17 @@ const getmatch = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             const matchlist = userlocal.map((doc) => {
                 const m = {};
                 m.user = doc.user;
-                const temp1 = imagelocal.filter((x) => {
-                    return x.image.userID == doc.id;
-                });
-                const temp = temp1.map((x) => x.image.url);
-                m.urlimage = temp[0];
+                m.user.userID = doc.id;
+                let x = imagelocal.filter((x) => x.image.userID == doc.id).map((x) => x.image.url);
+                console.log(x[0]);
+                m.user.imageUrl = x[0];
                 return m;
             });
             res.status(200).send({
                 isError: false,
                 message: "success",
                 data: {
-                    match: matchlist.map(x => x.user),
-                    image: matchlist.map(x => x.urlimage)
+                    match: matchlist.map(x => x.user)
                 },
             });
         }
@@ -453,21 +454,22 @@ const getmatch = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 const getConver = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { userID } = req.body;
-    const userR = yield firebase_service_1.database.collection("user").doc(userID);
-    // console.log(userID)
-    // const likeRef = await database.collection("like2");
-    // const userRef = database.collection("user");
     try {
+        // console.log(userID)
+        // const likeRef = await database.collection("like2");
+        // const userRef = database.collection("user");
         const likeRef = yield firebase_service_1.database
-            .collection("like2")
-            .where("message_id", "!=", null)
-            .where("user_id_like", "==", userID)
+            .collection("like")
+            .where("messageID", "!=", "")
+            .where("userID", "==", userID)
             .get();
+        const chatRef = yield firebase_service_1.realtimedb.ref(`message`);
+        console.log(chatRef.get());
         // console.log(likeSnap.docs[0].data())
         if (likeRef.empty) {
-            res.status(404).send({
-                "isError": false,
-                "message": "success",
+            res.status(400).send({
+                isError: true,
+                message: "user is not exist !!"
             });
         }
         else {
@@ -483,7 +485,7 @@ const getConver = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 u.user = doc.data();
                 return u;
             })
-                .filter((doc) => likelocal.map((x) => x.user_id_liked).includes(doc.id));
+                .filter((doc) => (likelocal.map(x => x.otherUserID)).includes(doc.id));
             const imagelocal = imageRef.docs.map((doc) => {
                 const i = {};
                 i.id = doc.id;
@@ -491,37 +493,82 @@ const getConver = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 return i;
             });
             //console.log(imagelocal)
-            const convermatch = userlocal.map((doc) => {
+            const converlist = userlocal.map((doc) => {
                 const m = {};
-                m.user = doc.user;
-                const temp1 = imagelocal.filter((x) => {
-                    return x.image.userID == doc.id;
-                });
-                const temp = temp1.map((x) => x.image.url);
-                m.urlimage = temp[0];
+                m.userID = doc.id;
+                m.fullName = doc.user.fullName;
+                m.messageID = likelocal.filter((x) => x.otherUserID == doc.id).map(x => x.messageID).shift();
+                let x = imagelocal.filter((x) => x.image.userID == doc.id).map((x) => x.image.url);
+                m.imageUrl = x[0];
                 return m;
             });
             res.status(200).send({
-                "isError": false,
-                "message": "success",
-                data: {}
+                isError: false,
+                message: "success",
+                data: {
+                    conver: converlist
+                },
             });
         }
     }
     catch (error) {
         res.status(500).send({
-            "isError": false,
-            "message": "cannot get conver"
+            isError: true,
+            message: "can not log in !!"
+        });
+    }
+});
+const getUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { userID, muserID } = req.body;
+    try {
+        const [userCollection, imageCollection, locationCollection, mlocationColection] = yield Promise.all([firebase_service_1.database.collection("user").doc(userID).get(),
+            firebase_service_1.database.collection("image").where("userID", "==", userID).get(),
+            firebase_service_1.database.collection("location").doc(userID).get(),
+            firebase_service_1.database.collection("location").doc("muserID").get()]);
+        const user = userCollection.data();
+        const location = locationCollection.data();
+        const mlocation = mlocationColection.data();
+        const userInfo = {};
+        userInfo.userID = userCollection.id;
+        userInfo.age = user.age;
+        userInfo.fullName = user.fullName;
+        userInfo.hobby = user.hobby,
+            userInfo.locationName = location.name;
+        userInfo.occupation = user.occupation;
+        const point = {};
+        const mponit = {};
+        point.latitude = location.lat;
+        point.longitude = location.lng;
+        mponit.latitude = mlocation.lat;
+        mponit.longitude = mlocation.lng;
+        userInfo.distance = (0, utils_1.getDistance)(point, mponit);
+        userInfo.imageUrl = imageCollection.docs.map(x => {
+            const image = x.data();
+            return image.url;
+        });
+        res.status(200).send({
+            isError: false,
+            message: "Thông tin người dùng",
+            data: {
+                user: userInfo
+            }
+        });
+    }
+    catch (error) {
+        res.status(400).send({
+            isError: true,
+            message: error
         });
     }
 });
 exports.default = {
     update,
-    getUser,
     like,
     chat,
     register,
     getDiscorverUser,
+    getConver,
     login,
     getmatch,
+    getUser
 };
