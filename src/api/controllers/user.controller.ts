@@ -687,6 +687,21 @@ const getUser = async (req:Request, res: Response):Promise<void> =>{
   }
 }
 
+const logout = async (req:Request, res:Response):Promise<void>=>{
+  const {userID} = req.body
+  try{
+    await database.collection("user").doc(userID).update({deviceToken:null})
+    res.status(200).send({
+      isError:false,
+      message:"Log out successfully"
+    })
+  }catch(error){
+      res.status(200).send({
+        isError:true,
+        message: error
+      })
+  }
+}
 
 export default {
   update,
@@ -697,5 +712,6 @@ export default {
   getConver,
   login,
   getmatch,
-  getUser
+  getUser,
+  logout
 };

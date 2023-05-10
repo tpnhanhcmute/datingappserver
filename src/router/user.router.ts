@@ -21,4 +21,7 @@ router.post("/login", userController.login);
 router.post("/getmatch", userController.getmatch);
 
 router.post("/getUser", userController.getUser);
+
+router.post("/logout", userController.logout);
+
 export = router;
