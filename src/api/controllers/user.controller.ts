@@ -127,8 +127,8 @@ const like = async (req: Request, res: Response): Promise<void> => {
       newMessageRef.set({
         match: `match on ${date}`,
       });
-      const userRef = await database.collection("user").doc(likeRequest.otherUserID.toString()).get()
-      const userDoc = userRef.data() as User
+      const  [userRef, otherUserRef] = await Promise.all([database.collection("user").doc(likeRequest.userID.toString()).get(), database.collection("user").doc(likeRequest.otherUserID.toString()).get()])
+      const userDoc = otherUserRef.data() as User
 
       if(userDoc.deviceToken != null){
         const registerDeviceTokens = []
@@ -138,7 +138,7 @@ const like = async (req: Request, res: Response): Promise<void> => {
                   tokens:registerDeviceTokens,
                   notification:{
                       title:"Datting app.com",
-                      body:`New match with ${likeRequest.userID}`
+                      body:`New match with ${(userRef.data() as User).fullName}`
                   }
               }
           );
