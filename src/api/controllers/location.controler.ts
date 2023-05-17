@@ -14,7 +14,7 @@ const update = async (req: Request, res: Response): Promise<void> => {
       data: plainLocation,
     });
   } catch (err) {
-    res.status(400).send({
+    res.status(200).send({
       isError: true,
       message: err,
     });

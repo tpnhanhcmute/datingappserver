@@ -17,7 +17,7 @@ const authentication = async (req: Request, res: Response): Promise<void>=>{
             message:"Authenticate successfull",
         })
     }catch(error){
-        res.status(400).send({
+        res.status(200).send({
             isError:true,
             message:error,
         })

@@ -44,7 +44,7 @@ const update = async (req: Request, res: Response): Promise<void> => {
     })
 
     .catch((error) => {
-      res.status(400).send({
+      res.status(200).send({
         isError: true,
         message: "Update falure",
         data: {},
@@ -184,7 +184,7 @@ const like = async (req: Request, res: Response): Promise<void> => {
     }
   } catch (error) {
     console.log("lỗi rồi kìa !!!" + error);
-    res.status(400).send({
+    res.status(200).send({
       isError:true,
       message:error
     })  
@@ -236,7 +236,7 @@ const chat = async (req: Request, res: Response): Promise<void> => {
     });
   } catch (error) {
     console.error("Lỗi khi gửi tin nhắn:", error);
-    res.status(500).send({
+    res.status(200).send({
       isError: true,
       message:error
     });
@@ -303,7 +303,7 @@ const register = async (req: Request, res: Response): Promise<void> => {
     });
   } catch (error) {
     console.log(error);
-    res.status(400).send({
+    res.status(200).send({
       isError: true,
       message: error,
     });
@@ -438,7 +438,7 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
       },
     });
   } catch (error) {
-    res.status(400).send({
+    res.status(200).send({
       isError: true,
       message: error,
     });
@@ -496,7 +496,7 @@ const login = async (req: Request, res: Response): Promise<void> => {
       }
     }
   } catch (error) {
-    res.status(500).send({
+    res.status(200).send({
       isError: true,
       message:"can not log in !!"
     });
@@ -517,7 +517,7 @@ const getmatch = async (req: Request, res: Response): Promise<void> => {
       .get();
 
     if (likeRef.empty) {
-      res.status(404).send({
+      res.status(200).send({
         isError: true,
         message:"user is not exist !!"
       });
@@ -567,7 +567,7 @@ const getmatch = async (req: Request, res: Response): Promise<void> => {
       });
     }
   } catch (error) {
-    res.status(500).send({
+    res.status(200).send({
       isError: true,
       message:"can not log in !!"
     })
@@ -684,7 +684,7 @@ const getUser = async (req:Request, res: Response):Promise<void> =>{
     })
   }
   catch(error){
-    res.status(400).send({
+    res.status(200).send({
       isError:true,
       message:error
     })
