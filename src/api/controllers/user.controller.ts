@@ -498,7 +498,7 @@ const login = async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     res.status(200).send({
       isError: true,
-      message:"can not log in !!"
+      message:error
     });
   }
 };
