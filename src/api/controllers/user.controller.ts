@@ -244,70 +244,56 @@ const chat = async (req: Request, res: Response): Promise<void> => {
 };
 
 const register = async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body;
+  try{
+    const newUser = req.body as User
+    const password = newUser.password
+    let isExitedAcount:Boolean = false
+    let userID:String =""
+    newUser.isAuth= false
+    newUser.password = await hashMessage(newUser.password)
 
-  const newUser = {} as User;
-  newUser.email = email;
-  newUser.password = await hashMessage(password);
-  newUser.isFirstLogin = true;
-  newUser.isAuth = false;
-
-  const userRef = database.collection("user");
-  try {
-    let querySnapshot = await userRef.where("email", "==", email).where("isAuth", "==", true).limit(1);
-    let docs = await querySnapshot.get();
-    let otp = randomNumber(4);
-    let id = "";
-    if (docs.size != 0) {
-      let userInfo: User;
-      docs.forEach((doc) => {
-        userInfo = doc.data() as User;
-        id = doc.id;
-      });
-
-      if (userInfo.isAuth == null || !userInfo.isAuth) {
-        //Send OTP
-        await sendEmail(email, "Datting appp: Your OTP", otp.toString());
-        res.status(200).send({
-          isError: false,
-          message: "send otp successed",
-          data: {
-            email: email,
-            otp: otp,
-          },
-        });
-      } else {
-        //Notify exited account
-        res.status(200).send({
-          isError: "true",
-          message: "acount has existed",
-        });
-      }
-      return;
+    const userRef = database.collection("user")
+    const thisUser = await userRef.where("email","==", newUser.email).get()
+    if(thisUser.size>0){
+        userID = thisUser.docs[0].id
+        if((thisUser.docs[0].data() as User).isAuth){
+            console.log((thisUser.docs[0].data() as User).email)
+            throw "Email is being used"
+        }else{ 
+            isExitedAcount = true
+            await userRef.doc(userID.toString()).update({
+                "password":newUser.password
+            })
+        }
     }
-    await sendEmail(email, "Datting appp: Your OTP", otp.toString());
-    const rss = await userRef.add(newUser);
-    const locate = {} as Location;
-    locate.lat = 0;
-    locate.lng = 0;
-    locate.name = "";
-    database.collection("location").doc(rss.id).set(locate);
-
+    console.log("UserID"+userID)
+    const otp:String = randomNumber(4)
+    console.log(isExitedAcount)
+    const AddUserFunc = async ()=>{
+        console.log(isExitedAcount)
+        if(!isExitedAcount)
+         {
+            const  userDoc = await userRef.add(newUser)
+            userID =  userDoc.id
+         }
+    }
+    await Promise.all([AddUserFunc(),
+                    sendEmail(newUser.email.toString(),"Authenticate chat app registration", "Your otp: "+ otp.toString())])
+    console.log(userID)
     res.status(200).send({
-      isError: false,
-      message: "send OTP successed",
-      data: {
-        id: id,
-        otp: otp,
-      },
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(200).send({
-      isError: true,
-      message: error,
-    });
-  }
+        isError:false,
+        message:"Add new user success",
+        data:{
+            email:newUser.email,
+            otp: otp
+        }
+    })
+}catch(error){
+res.status(200).send({
+    isError: true,
+    message:error
+})
+}
 };
 
 const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
