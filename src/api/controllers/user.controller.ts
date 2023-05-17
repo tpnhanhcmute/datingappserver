@@ -254,7 +254,7 @@ const register = async (req: Request, res: Response): Promise<void> => {
 
   const userRef = database.collection("user");
   try {
-    let querySnapshot = await userRef.where("email", "==", email).limit(1);
+    let querySnapshot = await userRef.where("email", "==", email).where("isAuth", "==", true).limit(1);
     let docs = await querySnapshot.get();
     let otp = randomNumber(4);
     let id = "";
