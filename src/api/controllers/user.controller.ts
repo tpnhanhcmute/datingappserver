@@ -250,6 +250,8 @@ const register = async (req: Request, res: Response): Promise<void> => {
     let isExitedAcount:Boolean = false
     let userID:String =""
     newUser.isAuth= false
+    newUser.isFirstLogin = true
+    
     newUser.password = await hashMessage(newUser.password)
 
     const userRef = database.collection("user")
