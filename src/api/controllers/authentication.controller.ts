@@ -1,7 +1,5 @@
 import { Request,Response } from "express";
 import {database} from "../services/firebase.service"
-import { User} from "../model/user.model"
-
 const authentication = async (req: Request, res: Response): Promise<void>=>{
     try{
         const {email} = req.body
@@ -20,7 +18,7 @@ const authentication = async (req: Request, res: Response): Promise<void>=>{
     }catch(error){
         res.status(200).send({
             isError:true,
-            message:error,
+            message:"Authentication failure",
         })
     }
 }
