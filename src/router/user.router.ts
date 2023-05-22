@@ -8,7 +8,7 @@ router.post("/getconver", userController.getConver);
 
 router.post("/update", userController.update);
 
-router.post("/like", userController.like);
+router.post("/like", userController.setInteraction);
 
 router.post("/chat", userController.chat);
 

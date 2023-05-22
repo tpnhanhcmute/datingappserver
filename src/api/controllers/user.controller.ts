@@ -1,13 +1,18 @@
-
 import { Request, Response, query } from "express";
 import {
   admin,
   database,
   realtimedb,
   sendEmail,
-  message
+  message,
 } from "../services/firebase.service";
-import { User } from "../model/user.model";import { hashMessage, randomNumber, getDistance, getAge } from "../../utils/utils";
+import { User } from "../model/user.model";
+import {
+  hashMessage,
+  randomNumber,
+  getDistance,
+  getAge,
+} from "../../utils/utils";
 import { Location } from "../model/location.model";
 import { Point } from "../model/point.model";
 import { DiscorverUser } from "../dto/discoverUser.dto";
@@ -26,10 +31,9 @@ import { conver } from "../dto/conver.dto";
 import { doc } from "firebase/firestore";
 
 const update = async (req: Request, res: Response): Promise<void> => {
-  
   const user = req.body as UserID;
   let isFirstLogin = false;
-  user.user.age =getAge(user.user.dateOfBirth)
+  user.user.age = getAge(user.user.dateOfBirth);
   const userRef = database.collection("user").doc(user.id.toString());
   userRef
     .set(user.user, { merge: true })
@@ -38,7 +42,7 @@ const update = async (req: Request, res: Response): Promise<void> => {
         isError: false,
         message: "Update successfully",
         data: {
-          user: user.user
+          user: user.user,
         },
       });
     })
@@ -96,8 +100,7 @@ const getFullName = async (ID) => {
   }
 };
 
-const like = async (req: Request, res: Response): Promise<void> => {
-
+const setInteraction = async (req: Request, res: Response): Promise<void> => {
   const likeRequest = req.body as LikeUser;
   const like = database.collection("like");
   const date = new Date().toLocaleString();
@@ -113,8 +116,8 @@ const like = async (req: Request, res: Response): Promise<void> => {
     // Tạo query để kiểm tra tương thích
     const matchQuery = await like
       .where("userID", "==", likeRequest.otherUserID)
-      .where("otherUserID","==",likeRequest.userID)
-      .where("isLike","==",true)
+      .where("otherUserID", "==", likeRequest.userID)
+      .where("isLike", "==", true)
       .get();
 
     //console.log(matchQuery.docs);
@@ -127,67 +130,72 @@ const like = async (req: Request, res: Response): Promise<void> => {
       newMessageRef.set({
         match: `match on ${date}`,
       });
-      const  [userRef, otherUserRef] = await Promise.all([database.collection("user").doc(likeRequest.userID.toString()).get(), database.collection("user").doc(likeRequest.otherUserID.toString()).get()])
-      const userDoc = otherUserRef.data() as User
+      const [userRef, otherUserRef] = await Promise.all([
+        database.collection("user").doc(likeRequest.userID.toString()).get(),
+        database
+          .collection("user")
+          .doc(likeRequest.otherUserID.toString())
+          .get(),
+      ]);
+      const userDoc = otherUserRef.data() as User;
 
-      if(userDoc.deviceToken != null){
-        const registerDeviceTokens = []
-        registerDeviceTokens.push(userDoc.deviceToken)
-          message.sendEachForMulticast(
-              {
-                  tokens:registerDeviceTokens,
-                  notification:{
-                      title:"Datting app.com",
-                      body:`New match with ${(userRef.data() as User).fullName}`
-                  }
-              }
-          );
+      if (userDoc.deviceToken != null) {
+        const registerDeviceTokens = [];
+        registerDeviceTokens.push(userDoc.deviceToken);
+        message.sendEachForMulticast({
+          tokens: registerDeviceTokens,
+          notification: {
+            title: "Datting app.com",
+            body: `New match with ${(userRef.data() as User).fullName}`,
+          },
+        });
       }
-      
 
       const [_, imageRef] = await Promise.all([
         updateMessageID(
           likeRequest.userID,
           likeRequest.otherUserID,
           newMessageId
-        ),database.collection("image").where("userID","==", likeRequest.otherUserID).get()
+        ),
+        database
+          .collection("image")
+          .where("userID", "==", likeRequest.otherUserID)
+          .get(),
       ]);
-    
-    const imageDoc = imageRef.docs.shift()
-    let url = "" as String
-    if(imageDoc != null){
-      url = (imageDoc.data() as Image).url
-    }
-  
-    
-      
-    const fullName = await getFullName(likeRequest.otherUserID)
+
+      const imageDoc = imageRef.docs.shift();
+      let url = "" as String;
+      if (imageDoc != null) {
+        url = (imageDoc.data() as Image).url;
+      }
+
+      const fullName = await getFullName(likeRequest.otherUserID);
       res.status(200).send({
         isError: false,
         message: "It's a match!",
         data: {
-          isMatch:true,
+          isMatch: true,
           otherUserID: likeRequest.otherUserID,
-          imageUrl:url,
+          imageUrl: url,
           messageID: newMessageId,
-          fullName: fullName
+          fullName: fullName,
         },
       });
-    } else {     
-       res.status(200).send({
+    } else {
+      res.status(200).send({
         isError: true,
         message: "Like Success",
-        data:{
-          isMatch:false
-        }
+        data: {
+          isMatch: false,
+        },
       });
     }
   } catch (error) {
     console.log("lỗi rồi kìa !!!" + error);
     res.status(200).send({
-      isError:true,
-      message:error
-    })  
+      isError: true,
+      message: error,
+    });
   }
 };
 
@@ -204,26 +212,26 @@ const chat = async (req: Request, res: Response): Promise<void> => {
       date,
       senderID: sendMessage.userID,
     });
-    const [userRef, otherUserRef] = await Promise.all([ database.collection("user").doc(sendMessage.userID.toString()).get()
-    ,database.collection("user").doc(sendMessage.otherUserID.toString()).get()])
-    
-    const userDoc = otherUserRef.data() as User
-    if(userDoc.deviceToken != null){
-      const registerDeviceTokens = []
-      registerDeviceTokens.push(userDoc.deviceToken)
-        message.sendEachForMulticast(
-            {
-                tokens:registerDeviceTokens,
-                notification:{
-                    title:"Datting app.com",
-                    body:`New message from ${(userRef.data() as User).fullName}`
-                }
-            }
-        );
+    const [userRef, otherUserRef] = await Promise.all([
+      database.collection("user").doc(sendMessage.userID.toString()).get(),
+      database.collection("user").doc(sendMessage.otherUserID.toString()).get(),
+    ]);
+
+    const userDoc = otherUserRef.data() as User;
+    if (userDoc.deviceToken != null) {
+      const registerDeviceTokens = [];
+      registerDeviceTokens.push(userDoc.deviceToken);
+      message.sendEachForMulticast({
+        tokens: registerDeviceTokens,
+        notification: {
+          title: "Datting app.com",
+          body: `New message from ${(userRef.data() as User).fullName}`,
+        },
+      });
     }
-    
+
     res.status(200).send({
-      isError:false,
+      isError: false,
       message: "Tin nhắn đã được gửi thành công",
       data: {
         messageData: {
@@ -238,64 +246,69 @@ const chat = async (req: Request, res: Response): Promise<void> => {
     console.error("Lỗi khi gửi tin nhắn:", error);
     res.status(200).send({
       isError: true,
-      message:error
+      message: error,
     });
   }
 };
 
 const register = async (req: Request, res: Response): Promise<void> => {
-  try{
-    const newUser = req.body as User
-    const password = newUser.password
-    let isExitedAcount:Boolean = false
-    let userID:String =""
-    newUser.isAuth= false
-    newUser.isFirstLogin = true
-    
-    newUser.password = await hashMessage(newUser.password)
+  try {
+    const newUser = req.body as User;
+    const password = newUser.password;
+    let isExitedAcount: Boolean = false;
+    let userID: String = "";
+    newUser.isAuth = false;
+    newUser.isFirstLogin = true;
 
-    const userRef = database.collection("user")
-    const thisUser = await userRef.where("email","==", newUser.email).get()
-    if(thisUser.size>0){
-        userID = thisUser.docs[0].id
-        if((thisUser.docs[0].data() as User).isAuth){
-            console.log((thisUser.docs[0].data() as User).email)
-            throw "Email is being used"
-        }else{ 
-            isExitedAcount = true
-            await userRef.doc(userID.toString()).update({
-                "password":newUser.password
-            })
-        }
+    newUser.password = await hashMessage(newUser.password);
+
+    const userRef = database.collection("user");
+    const thisUser = await userRef.where("email", "==", newUser.email).get();
+    if (thisUser.size > 0) {
+      userID = thisUser.docs[0].id;
+      if ((thisUser.docs[0].data() as User).isAuth) {
+        console.log((thisUser.docs[0].data() as User).email);
+        throw "Email is being used";
+      } else {
+        isExitedAcount = true;
+        await userRef.doc(userID.toString()).update({
+          password: newUser.password,
+        });
+      }
     }
-    console.log("UserID"+userID)
-    const otp:String = randomNumber(4)
-    console.log(isExitedAcount)
-    const AddUserFunc = async ()=>{
-        console.log(isExitedAcount)
-        if(!isExitedAcount)
-         {
-            const  userDoc = await userRef.add(newUser)
-            userID =  userDoc.id
-         }
-    }
-    await Promise.all([AddUserFunc(),
-                    sendEmail(newUser.email.toString(),"Authenticate chat app registration", "Your otp: "+ otp.toString())])
-    console.log(userID)
+    console.log("UserID" + userID);
+    const otp: String = randomNumber(4);
+    console.log(isExitedAcount);
+    const AddUserFunc = async () => {
+      console.log(isExitedAcount);
+      if (!isExitedAcount) {
+        const userDoc = await userRef.add(newUser);
+        userID = userDoc.id;
+      }
+    };
+    await Promise.all([
+      AddUserFunc(),
+      sendEmail(
+        newUser.email.toString(),
+        "Authenticate chat app registration",
+        "Your otp: " + otp.toString()
+      ),
+    ]);
+    console.log(userID);
     res.status(200).send({
-        isError:false,
-        message:"Add new user success",
-        data:{
-            email:newUser.email,
-            otp: otp
-        }
-    })
-}catch(error){
-res.status(200).send({
-    isError: true,
-    message:error
-})
-}
+      isError: false,
+      message: "Add new user success",
+      data: {
+        email: newUser.email,
+        otp: otp,
+      },
+    });
+  } catch (error) {
+    res.status(200).send({
+      isError: true,
+      message: error,
+    });
+  }
 };
 
 const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
@@ -338,28 +351,23 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    let [
-      userCollection,
-      locationCollection,
-      imageCollection,
-      likeCollection,
-    ] = await Promise.all([
-      database.collection("user").where("isAuth", "==", true).where(admin.firestore.FieldPath.documentId(), "!=", userID).get(),
-      database.collection("location").get(),
-      database.collection("image").get(),
+    let [userCollection, locationCollection, imageCollection, likeCollection] =
+      await Promise.all([
+        database
+          .collection("user")
+          .where("isAuth", "==", true)
+          .where(admin.firestore.FieldPath.documentId(), "!=", userID)
+          .get(),
+        database.collection("location").get(),
+        database.collection("image").get(),
 
-      database
-        .collection("like")
-        .where("userID", "==", userID)
-        .get(),
-    ]);
-
-    
+        database.collection("like").where("userID", "==", userID).get(),
+      ]);
 
     let likeDocs = likeCollection.docs.map(
       (like) => (like.data() as Interaction).otherUserID
     );
-    let userDocs: Array<UserID> = userCollection.docs 
+    let userDocs: Array<UserID> = userCollection.docs
       .map((doc) => {
         let u = {} as UserID;
         u.id = doc.id;
@@ -371,7 +379,6 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
           user.user.age >= (minAge as Number) &&
           user.user.age <= (maxAge as Number) &&
           getGender.includes(user.user.gender) &&
-
           !likeDocs.includes(user.id)
       );
     let locationDoc: Array<LocationID> = locationCollection.docs.map((doc) => {
@@ -403,17 +410,15 @@ const getDiscorverUser = async (req: Request, res: Response): Promise<void> => {
       }
       let dcUser = {} as DiscorverUser;
 
-      dcUser.userID = userDoc.id
+      dcUser.userID = userDoc.id;
       dcUser.age = userDoc.user.age;
       dcUser.fullName = userDoc.user.fullName;
       (dcUser.hobby = userDoc.user.hobby),
         (dcUser.occupation = userDoc.user.occupation);
       dcUser.distance = distance;
       dcUser.imageUrl = imageDoc
-        .filter((x) => 
-          x.image.userID == userDoc.id
-        )
-        .map(x =>  x.image.url);
+        .filter((x) => x.image.userID == userDoc.id)
+        .map((x) => x.image.url);
 
       return dcUser;
     });
@@ -439,12 +444,13 @@ const login = async (req: Request, res: Response): Promise<void> => {
   const newUser = {} as User;
 
   try {
-    const snapshots = await userRef.where("email", "==", email).where("isAuth","==", true).get();
+    const snapshots = await userRef
+      .where("email", "==", email)
+      .where("isAuth", "==", true)
+      .get();
 
     if (snapshots.empty) {
-     
-       throw "user is not exist!!"
-      
+      throw "user is not exist!!";
     } else {
       const passwordHash = await hashMessage(password);
       const snapshot = await userRef
@@ -452,15 +458,14 @@ const login = async (req: Request, res: Response): Promise<void> => {
         .where("password", "==", passwordHash)
         .get();
       if (snapshot.empty) {
-        throw "password is not correct"
+        throw "password is not correct";
       } else {
         // console.log(x.docs[0].data().career)
         const userdoc = snapshot.docs[0].data();
 
         await database.collection("user").doc(snapshot.docs[0].id).update({
-          deviceToken:deviceToken
-        })
-
+          deviceToken: deviceToken,
+        });
 
         newUser.career = userdoc.career;
         newUser.age = userdoc.age;
@@ -486,7 +491,7 @@ const login = async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     res.status(200).send({
       isError: true,
-      message:error
+      message: error,
     });
   }
 };
@@ -494,10 +499,10 @@ const login = async (req: Request, res: Response): Promise<void> => {
 const getmatch = async (req: Request, res: Response): Promise<void> => {
   const { userID } = req.body;
   try {
-  // console.log(userID)
-  // const likeRef = await database.collection("like2");
-  // const userRef = database.collection("user");
-  
+    // console.log(userID)
+    // const likeRef = await database.collection("like2");
+    // const userRef = database.collection("user");
+
     const likeRef = await database
       .collection("like")
       .where("userID", "==", userID)
@@ -507,7 +512,7 @@ const getmatch = async (req: Request, res: Response): Promise<void> => {
     if (likeRef.empty) {
       res.status(200).send({
         isError: true,
-        message:"user is not exist !!"
+        message: "user is not exist !!",
       });
     } else {
       const [useref, imageRef] = await Promise.all([
@@ -522,7 +527,7 @@ const getmatch = async (req: Request, res: Response): Promise<void> => {
           u.user = doc.data() as matchUser;
           return u;
         })
-        .filter((doc)=>(likelocal.map(x =>x.otherUserID)).includes(doc.id))
+        .filter((doc) => likelocal.map((x) => x.otherUserID).includes(doc.id));
       console.log(likelocal);
       //.filter((x)=>{
       //   x.id =
@@ -539,10 +544,12 @@ const getmatch = async (req: Request, res: Response): Promise<void> => {
       const matchlist: Array<Match> = userlocal.map((doc) => {
         const m = {} as Match;
         m.user = doc.user;
-        m.user.userID = doc.id
-        let x = imagelocal.filter((x) => x.image.userID == doc.id).map((x) => x.image.url)
-        console.log(x[0])
-        m.user.imageUrl = x[0]
+        m.user.userID = doc.id;
+        let x = imagelocal
+          .filter((x) => x.image.userID == doc.id)
+          .map((x) => x.image.url);
+        console.log(x[0]);
+        m.user.imageUrl = x[0];
         return m;
       });
 
@@ -550,38 +557,34 @@ const getmatch = async (req: Request, res: Response): Promise<void> => {
         isError: false,
         message: "success",
         data: {
-          match: matchlist.map(x => x.user)
+          match: matchlist.map((x) => x.user),
         },
       });
     }
   } catch (error) {
     res.status(200).send({
       isError: true,
-      message:"can not log in !!"
-    })
+      message: "can not log in !!",
+    });
   }
 };
 
 const getConver = async (req: Request, res: Response): Promise<void> => {
   const { userID } = req.body;
   try {
-  // console.log(userID)
-  // const likeRef = await database.collection("like2");
-  // const userRef = database.collection("user");
-  
     const likeRef = await database
       .collection("like")
       .where("messageID", "!=", "")
       .where("userID", "==", userID)
       .get();
 
-    const chatRef = await realtimedb.ref(`message`)
-    console.log(chatRef.get())
+    const chatRef = await realtimedb.ref(`message`);
+    console.log(chatRef.get());
     // console.log(likeSnap.docs[0].data())
     if (likeRef.empty) {
       res.status(400).send({
         isError: true,
-        message:"user is not exist !!"
+        message: "user is not exist !!",
       });
     } else {
       const [useref, imageRef] = await Promise.all([
@@ -596,7 +599,7 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
           u.user = doc.data() as conver;
           return u;
         })
-        .filter((doc)=>(likelocal.map(x =>x.otherUserID)).includes(doc.id))
+        .filter((doc) => likelocal.map((x) => x.otherUserID).includes(doc.id));
       const imagelocal: Array<ImageID> = imageRef.docs.map((doc) => {
         const i = {} as ImageID;
         i.id = doc.id;
@@ -604,15 +607,19 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
         return i;
       });
 
-
       //console.log(imagelocal)
       const converlist: Array<conver> = userlocal.map((doc) => {
         const m = {} as conver;
         m.userID = doc.id;
         m.fullName = doc.user.fullName;
-        m.messageID = likelocal.filter((x)=>x.otherUserID == doc.id).map(x=>x.messageID).shift()
-        let x = imagelocal.filter((x) => x.image.userID == doc.id).map((x) => x.image.url)
-        m.imageUrl = x[0]
+        m.messageID = likelocal
+          .filter((x) => x.otherUserID == doc.id)
+          .map((x) => x.messageID)
+          .shift();
+        let x = imagelocal
+          .filter((x) => x.image.userID == doc.id)
+          .map((x) => x.image.url);
+        m.imageUrl = x[0];
         return m;
       });
 
@@ -620,37 +627,41 @@ const getConver = async (req: Request, res: Response): Promise<void> => {
         isError: false,
         message: "success",
         data: {
-          conver: converlist
+          conver: converlist,
         },
       });
     }
   } catch (error) {
     res.status(200).send({
       isError: true,
-      message:"can not log in !!"
-    })
+      message: "can not log in !!",
+    });
   }
 };
-const getUser = async (req:Request, res: Response):Promise<void> =>{
-  const {userID,muserID} = req.body
-  try{
-    const [userCollection, imageCollection, locationCollection,mlocationColection]=
-   await Promise.all([database.collection("user").doc(userID).get(),
-    database.collection("image").where("userID", "==", userID).get(),
-    database.collection("location").doc(userID).get(),
-    database.collection("location").doc(muserID).get()])
-    
+const getUser = async (req: Request, res: Response): Promise<void> => {
+  const { userID, muserID } = req.body;
+  try {
+    const [
+      userCollection,
+      imageCollection,
+      locationCollection,
+      mlocationColection,
+    ] = await Promise.all([
+      database.collection("user").doc(userID).get(),
+      database.collection("image").where("userID", "==", userID).get(),
+      database.collection("location").doc(userID).get(),
+      database.collection("location").doc(muserID).get(),
+    ]);
 
-    const user = userCollection.data() as User
-    const location = locationCollection.data() as Location
-    const mlocation = mlocationColection.data() as Location
-    const userInfo = {} as DiscorverUser
-    userInfo.userID = userCollection.id
-    userInfo.age = user.age
-    userInfo.fullName = user.fullName
-    userInfo.hobby = user.hobby,
-    userInfo.locationName = location.name
-    userInfo.occupation =user.occupation
+    const user = userCollection.data() as User;
+    const location = locationCollection.data() as Location;
+    const mlocation = mlocationColection.data() as Location;
+    const userInfo = {} as DiscorverUser;
+    userInfo.userID = userCollection.id;
+    userInfo.age = user.age;
+    userInfo.fullName = user.fullName;
+    (userInfo.hobby = user.hobby), (userInfo.locationName = location.name);
+    userInfo.occupation = user.occupation;
     const point = {} as Point;
     const mponit = {} as Point;
     point.latitude = location.lat;
@@ -658,46 +669,45 @@ const getUser = async (req:Request, res: Response):Promise<void> =>{
     mponit.latitude = mlocation.lat;
     mponit.longitude = mlocation.lng;
 
-    userInfo.distance = getDistance(point,mponit)
-    userInfo.imageUrl = imageCollection.docs.map(x =>{
-      const image = x.data() as Image
-      return image.url
-    })
+    userInfo.distance = getDistance(point, mponit);
+    userInfo.imageUrl = imageCollection.docs.map((x) => {
+      const image = x.data() as Image;
+      return image.url;
+    });
     res.status(200).send({
-      isError:false,
-      message:"Thông tin người dùng",
-      data:{
-        user: userInfo
-      }
-    })
-  }
-  catch(error){
+      isError: false,
+      message: "Thông tin người dùng",
+      data: {
+        user: userInfo,
+      },
+    });
+  } catch (error) {
     res.status(200).send({
-      isError:true,
-      message:error
-    })
+      isError: true,
+      message: error,
+    });
   }
-}
+};
 
-const logout = async (req:Request, res:Response):Promise<void>=>{
-  const {userID} = req.body
-  try{
-    await database.collection("user").doc(userID).update({deviceToken:null})
+const logout = async (req: Request, res: Response): Promise<void> => {
+  const { userID } = req.body;
+  try {
+    await database.collection("user").doc(userID).update({ deviceToken: null });
     res.status(200).send({
-      isError:false,
-      message:"Log out successfully"
-    })
-  }catch(error){
-      res.status(200).send({
-        isError:true,
-        message: error
-      })
+      isError: false,
+      message: "Log out successfully",
+    });
+  } catch (error) {
+    res.status(200).send({
+      isError: true,
+      message: error,
+    });
   }
-}
+};
 
 export default {
   update,
-  like,
+  setInteraction,
   chat,
   register,
   getDiscorverUser,
@@ -705,5 +715,5 @@ export default {
   login,
   getmatch,
   getUser,
-  logout
+  logout,
 };
